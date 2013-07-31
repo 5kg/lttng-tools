@@ -47,7 +47,6 @@ static char *opt_exclude;
 #if 0
 /* Not implemented yet */
 static char *opt_cmd_name;
-static pid_t opt_pid;
 #endif
 
 enum {
@@ -711,15 +710,26 @@ static int enable_events(char *session_name)
 
 			switch (opt_event_type) {
 			case LTTNG_EVENT_ALL:	/* Default behavior is tracepoint */
+				ev.type = LTTNG_EVENT_TRACEPOINT;
 				/* Fall-through */
 			case LTTNG_EVENT_TRACEPOINT:
-				/* Copy name and type of the event */
-				ev.type = LTTNG_EVENT_TRACEPOINT;
-				strncpy(ev.name, event_name, LTTNG_SYMBOL_NAME_LEN);
-				ev.name[LTTNG_SYMBOL_NAME_LEN - 1] = '\0';
+				/* Fall-through */
+				break;
+			case LTTNG_EVENT_FUNCTION:
+				if (!opt_pid) {
+					ERR("Process ID is required for user-space function probe");
+					ret = CMD_UNDEFINED;
+					goto error;
+				}
+				ev.pid = opt_pid;
+				ret = parse_probe_opts(&ev, opt_function);
+				if (ret < 0) {
+					ERR("Unable to parse function probe options");
+					ret = 0;
+					goto error;
+				}
 				break;
 			case LTTNG_EVENT_PROBE:
-			case LTTNG_EVENT_FUNCTION:
 			case LTTNG_EVENT_FUNCTION_ENTRY:
 			case LTTNG_EVENT_SYSCALL:
 			default:
