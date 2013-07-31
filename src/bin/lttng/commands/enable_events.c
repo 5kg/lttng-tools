@@ -42,10 +42,10 @@ static char *opt_function;
 static char *opt_function_entry_symbol;
 static char *opt_channel_name;
 static char *opt_filter;
+static pid_t opt_pid;
 #if 0
 /* Not implemented yet */
 static char *opt_cmd_name;
-static pid_t opt_pid;
 #endif
 
 enum {
@@ -72,6 +72,7 @@ static struct poptOption long_options[] = {
 	{"channel",        'c', POPT_ARG_STRING, &opt_channel_name, 0, 0, 0},
 	{"kernel",         'k', POPT_ARG_VAL, &opt_kernel, 1, 0, 0},
 	{"userspace",      'u', POPT_ARG_NONE, 0, OPT_USERSPACE, 0, 0},
+	{"pid",            'p', POPT_ARG_INT, &opt_pid, 0, 0, 0},
 	{"tracepoint",     0,   POPT_ARG_NONE, 0, OPT_TRACEPOINT, 0, 0},
 	{"probe",          0,   POPT_ARG_STRING, &opt_probe, OPT_PROBE, 0, 0},
 	{"function",       0,   POPT_ARG_STRING, &opt_function, OPT_FUNCTION, 0, 0},
@@ -105,6 +106,7 @@ static void usage(FILE *ofp)
 	fprintf(ofp, "  -a, --all                Enable all tracepoints and syscalls\n");
 	fprintf(ofp, "  -k, --kernel             Apply for the kernel tracer\n");
 	fprintf(ofp, "  -u, --userspace          Apply to the user-space tracer\n");
+	fprintf(ofp, "  -p, --pid                Apply to specific process\n");
 	fprintf(ofp, "\n");
 	fprintf(ofp, "Event options:\n");
 	fprintf(ofp, "    --tracepoint           Tracepoint event (default)\n");
@@ -548,15 +550,26 @@ static int enable_events(char *session_name)
 
 			switch (opt_event_type) {
 			case LTTNG_EVENT_ALL:	/* Default behavior is tracepoint */
+				ev.type = LTTNG_EVENT_TRACEPOINT;
 				/* Fall-through */
 			case LTTNG_EVENT_TRACEPOINT:
-				/* Copy name and type of the event */
-				ev.type = LTTNG_EVENT_TRACEPOINT;
-				strncpy(ev.name, event_name, LTTNG_SYMBOL_NAME_LEN);
-				ev.name[LTTNG_SYMBOL_NAME_LEN - 1] = '\0';
+				/* Fall-through */
+				break;
+			case LTTNG_EVENT_FUNCTION:
+				if (!opt_pid) {
+					ERR("Process ID is required for user-space function probe");
+					ret = CMD_UNDEFINED;
+					goto error;
+				}
+				ev.pid = opt_pid;
+				ret = parse_probe_opts(&ev, opt_function);
+				if (ret < 0) {
+					ERR("Unable to parse function probe options");
+					ret = 0;
+					goto error;
+				}
 				break;
 			case LTTNG_EVENT_PROBE:
-			case LTTNG_EVENT_FUNCTION:
 			case LTTNG_EVENT_FUNCTION_ENTRY:
 			case LTTNG_EVENT_SYSCALL:
 			default:
