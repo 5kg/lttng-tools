@@ -104,8 +104,8 @@ static void usage(FILE *ofp)
 	fprintf(ofp, "Options:\n");
 	fprintf(ofp, "  -h, --help               Show this help\n");
 	fprintf(ofp, "      --list-options       Simple listing of options\n");
-	fprintf(ofp, "  -s, --session NAME       Apply to session name\n");
-	fprintf(ofp, "  -c, --channel NAME       Apply to this channel\n");
+	fprintf(ofp, "  -s, --session NAME       Apply on session name\n");
+	fprintf(ofp, "  -c, --channel NAME       Apply on channel name\n");
 	fprintf(ofp, "  -a, --all                Enable all tracepoints and syscalls\n");
 	fprintf(ofp, "  -k, --kernel             Apply for the kernel tracer\n");
 	fprintf(ofp, "  -u, --userspace          Apply to the user-space tracer\n");
