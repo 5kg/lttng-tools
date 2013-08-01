@@ -537,14 +537,6 @@ static int enable_events(char *session_name)
 			/* kernel loglevels not implemented */
 			ev.loglevel_type = LTTNG_EVENT_LOGLEVEL_ALL;
 		} else if (opt_userspace) {		/* User-space tracer action */
-#if 0
-			if (opt_cmd_name != NULL || opt_pid) {
-				MSG("Only supporting tracing all UST processes (-u) for now.");
-				ret = CMD_UNDEFINED;
-				goto error;
-			}
-#endif
-
 			DBG("Enabling UST event %s for channel %s, loglevel %s", event_name,
 					print_channel_name(channel_name), opt_loglevel ? : "<all>");
 
@@ -553,7 +545,11 @@ static int enable_events(char *session_name)
 				ev.type = LTTNG_EVENT_TRACEPOINT;
 				/* Fall-through */
 			case LTTNG_EVENT_TRACEPOINT:
-				/* Fall-through */
+				if (opt_pid) {
+					MSG("Tracing specific process is not available for static compiled tracepoint");
+					ret = CMD_UNDEFINED;
+					goto error;
+				}
 				break;
 			case LTTNG_EVENT_FUNCTION:
 				if (!opt_pid) {
@@ -565,7 +561,7 @@ static int enable_events(char *session_name)
 				ret = parse_probe_opts(&ev, opt_function);
 				if (ret < 0) {
 					ERR("Unable to parse function probe options");
-					ret = 0;
+					ret = CMD_ERROR;
 					goto error;
 				}
 				break;
