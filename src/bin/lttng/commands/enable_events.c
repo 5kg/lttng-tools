@@ -750,7 +750,7 @@ static int enable_events(char *session_name)
 				ret = parse_probe_opts(&ev, opt_function);
 				if (ret < 0) {
 					ERR("Unable to parse function probe options");
-					ret = 0;
+					ret = CMD_ERROR;
 					goto error;
 				}
 				break;
