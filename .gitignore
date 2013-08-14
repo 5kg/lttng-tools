@@ -75,5 +75,6 @@ tests/regression/ust/exit-fast/exit-fast
 tests/regression/ust/fork/fork
 tests/regression/ust/fork/fork2
 tests/regression/ust/libc-wrapper/prog
+tests/utils/testapp/gen-ust-nevents/gen-ust-nevents
 
 benchmark/

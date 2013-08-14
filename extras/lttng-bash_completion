@@ -16,11 +16,16 @@
 #
 
 _lttng_complete_sessions() {
-	# TODO, maybe have a lttng list --simple or something like that
+	# TODO
+	# This code does nothing for now. When there is a mecanism to get the
+	# existing sessions, use it to fill the sessions variable.
+	local sessions
+	sessions=""
+	COMPREPLY=( $(compgen -W "${sessions}" -- $cur) )
 	return
 }
 
-_lttng_cmd_add_context() {
+_lttng_cmd_addcontext() {
 	local add_context_opts
 	add_context_opts=$(lttng add-context --list-options)
 
@@ -30,9 +35,6 @@ _lttng_cmd_add_context() {
 		return
 		;;
 	--channel|-c)
-		return
-		;;
-	--event|-e)
 		return
 		;;
 	--type|-t)
@@ -128,44 +130,6 @@ _lttng_cmd_enableevent() {
 	esac
 }
 
-_lttng_cmd_enableconsumer() {
-	local enable_consumer_opts
-		enable_consumer_opts=$(lttng enable-consumer --list-options)
-
-	case $prev in
-	--session|-s)
-		_lttng_complete_sessions
-		return
-		;;
-	esac
-
-	case $cur in
-	-*)
-		COMPREPLY=( $(compgen -W "${enable_consumer_opts}" -- $cur) )
-		return
-		;;
-	esac
-}
-
-_lttng_cmd_disableconsumer() {
-	local disable_consumer_opts
-		disable_consumer_opts=$(lttng disable-consumer --list-options)
-
-	case $prev in
-	--session|-s)
-		_lttng_complete_sessions
-		return
-		;;
-	esac
-
-	case $cur in
-	-*)
-		COMPREPLY=( $(compgen -W "${disable_consumer_opts}" -- $cur) )
-		return
-		;;
-	esac
-}
-
 _lttng_cmd_disablechannel() {
 	local disable_channel_opts
 	disable_channel_opts=$(lttng disable-channel --list-options)
@@ -185,9 +149,9 @@ _lttng_cmd_disablechannel() {
 	esac
 }
 
-_lttng_cmd_disable_event() {
+_lttng_cmd_disableevent() {
 	local disable_event_opts
-	disable_channel_opts=$(lttng disable-event --list-options)
+	disable_event_opts=$(lttng disable-event --list-options)
 
 	case $prev in
 	--session|-s)
@@ -222,16 +186,23 @@ _lttng_cmd_list() {
 		COMPREPLY=( $(compgen -W "${list_opts}" -- $cur) )
 		return
 		;;
+	*)
+		_lttng_complete_sessions
+		return
 	esac
 }
 
-_lttng_cmd_set_session() {
+_lttng_cmd_setsession() {
 	local set_session_opts
 	set_session_opts=$(lttng set-session --list-options)
 
 	case $cur in
 	-*)
 		COMPREPLY=( $(compgen -W "${set_session_opts}" -- $cur) )
+		return
+		;;
+	*)
+		_lttng_complete_sessions
 		return
 		;;
 	esac
