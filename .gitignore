@@ -46,7 +46,6 @@ src/lib/lttng-ctl/filter/filter-parser.output
 extras/bindings/swig/python/lttng.i
 extras/bindings/swig/python/lttng.py
 extras/bindings/swig/python/lttng_wrap.c
-extras/core-handler/crash
 
 .checkpatch.conf
 
@@ -66,7 +65,6 @@ gen-nevents
 gen-events-time
 gen-events
 gen-ust-events
-gen-ust-nevents
 health_check
 tests/regression/ust/overlap/demo/demo
 tests/regression/ust/linking/demo_builtin
