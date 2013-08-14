@@ -52,6 +52,7 @@ static char *opt_exclude;
 #if 0
 /* Not implemented yet */
 static char *opt_cmd_name;
+static pid_t opt_pid;
 #endif
 
 enum {
@@ -109,8 +110,8 @@ static void usage(FILE *ofp)
 	fprintf(ofp, "Options:\n");
 	fprintf(ofp, "  -h, --help               Show this help\n");
 	fprintf(ofp, "      --list-options       Simple listing of options\n");
-	fprintf(ofp, "  -s, --session NAME       Apply on session name\n");
-	fprintf(ofp, "  -c, --channel NAME       Apply on channel name\n");
+	fprintf(ofp, "  -s, --session NAME       Apply to session name\n");
+	fprintf(ofp, "  -c, --channel NAME       Apply to this channel\n");
 	fprintf(ofp, "  -a, --all                Enable all tracepoints and syscalls\n");
 	fprintf(ofp, "  -k, --kernel             Apply for the kernel tracer\n");
 	fprintf(ofp, "  -u, --userspace          Apply to the user-space tracer\n");
@@ -750,7 +751,7 @@ static int enable_events(char *session_name)
 				ret = parse_probe_opts(&ev, opt_function);
 				if (ret < 0) {
 					ERR("Unable to parse function probe options");
-					ret = CMD_ERROR;
+					ret = 0;
 					goto error;
 				}
 				break;
@@ -770,35 +771,28 @@ static int enable_events(char *session_name)
 			/* kernel loglevels not implemented */
 			ev.loglevel_type = LTTNG_EVENT_LOGLEVEL_ALL;
 		} else if (opt_userspace) {		/* User-space tracer action */
+#if 0
+			if (opt_cmd_name != NULL || opt_pid) {
+				MSG("Only supporting tracing all UST processes (-u) for now.");
+				ret = CMD_UNDEFINED;
+				goto error;
+			}
+#endif
+
 			DBG("Enabling UST event %s for channel %s, loglevel %s", event_name,
 					print_channel_name(channel_name), opt_loglevel ? : "<all>");
 
 			switch (opt_event_type) {
 			case LTTNG_EVENT_ALL:	/* Default behavior is tracepoint */
-				ev.type = LTTNG_EVENT_TRACEPOINT;
 				/* Fall-through */
 			case LTTNG_EVENT_TRACEPOINT:
-				if (opt_pid) {
-					MSG("Tracing specific process is not available for static compiled tracepoint");
-					ret = CMD_UNDEFINED;
-					goto error;
-				}
-				break;
-			case LTTNG_EVENT_FUNCTION:
-				if (!opt_pid) {
-					ERR("Process ID is required for user-space function probe");
-					ret = CMD_UNDEFINED;
-					goto error;
-				}
-				ev.pid = opt_pid;
-				ret = parse_probe_opts(&ev, opt_function);
-				if (ret < 0) {
-					ERR("Unable to parse function probe options");
-					ret = CMD_ERROR;
-					goto error;
-				}
+				/* Copy name and type of the event */
+				ev.type = LTTNG_EVENT_TRACEPOINT;
+				strncpy(ev.name, event_name, LTTNG_SYMBOL_NAME_LEN);
+				ev.name[LTTNG_SYMBOL_NAME_LEN - 1] = '\0';
 				break;
 			case LTTNG_EVENT_PROBE:
+			case LTTNG_EVENT_FUNCTION:
 			case LTTNG_EVENT_FUNCTION_ENTRY:
 			case LTTNG_EVENT_SYSCALL:
 			default:
