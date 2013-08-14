@@ -206,6 +206,8 @@ struct lttng_event_probe_attr {
 	uint64_t offset;
 	char symbol_name[LTTNG_SYMBOL_NAME_LEN];
 
+	char object_name[PATH_MAX];
+
 	char padding[LTTNG_EVENT_PROBE_PADDING1];
 };
 
