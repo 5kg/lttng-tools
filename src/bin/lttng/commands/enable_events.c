@@ -335,6 +335,38 @@ static int loglevel_jul_str_to_value(const char *inputstr)
 }
 
 /*
+ * Parse user-space probe options.
+ */
+static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
+{
+	int ret, len;
+	char *pos;
+
+	if (opt == NULL) {
+		ret = -1;
+		goto end;
+	}
+
+	/* Check for pathname */
+	/* TODO: support relative path */
+	/* TODO: support wildcard matching */
+	if ((pos = strrchr(opt, '@')) != NULL) {
+		len = min(pos - opt, PATH_MAX);
+		strncpy(ev->attr.probe.object_name, opt, len);
+		ev->attr.probe.object_name[len] = '\0';
+		DBG("probe object %s", ev->attr.probe.object_name);
+		ret = parse_probe_opts(ev, pos+1);
+		goto end;
+	}
+
+	/* No match */
+	ret = -1;
+
+end:
+	return ret;
+}
+
+/*
  * Maps loglevel from string to value
  */
 static
@@ -792,7 +824,21 @@ static int enable_events(char *session_name)
 				ev.name[LTTNG_SYMBOL_NAME_LEN - 1] = '\0';
 				break;
 			case LTTNG_EVENT_PROBE:
+				ret = parse_ust_probe_opts(&ev, opt_probe);
+				if (ret < 0) {
+					ERR("Unable to parse probe options");
+					ret = 0;
+					goto error;
+				}
+				break;
 			case LTTNG_EVENT_FUNCTION:
+				ret = parse_ust_probe_opts(&ev, opt_function);
+				if (ret < 0) {
+					ERR("Unable to parse function probe options");
+					ret = 0;
+					goto error;
+				}
+				break;
 			case LTTNG_EVENT_FUNCTION_ENTRY:
 			case LTTNG_EVENT_SYSCALL:
 			default:
