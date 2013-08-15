@@ -28,6 +28,7 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
 
 #define lttng_ust_notrace __attribute__((no_instrument_function))
 #define LTTNG_PACKED    __attribute__((__packed__))
@@ -101,7 +102,7 @@ struct lttng_ust_stream {
 } LTTNG_PACKED;
 
 #define LTTNG_UST_EVENT_PADDING1	16
-#define LTTNG_UST_EVENT_PADDING2	(LTTNG_UST_SYM_NAME_LEN + 32)
+#define LTTNG_UST_EVENT_PADDING2	(PATH_MAX + 32)
 struct lttng_ust_event {
 	enum lttng_ust_instrumentation instrumentation;
 	char name[LTTNG_UST_SYM_NAME_LEN];	/* event name */
@@ -112,6 +113,7 @@ struct lttng_ust_event {
 
 	/* Per instrumentation type configuration */
 	union {
+		char object_name[PATH_MAX];
 		char padding[LTTNG_UST_EVENT_PADDING2];
 	} u;
 } LTTNG_PACKED;
