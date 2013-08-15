@@ -324,12 +324,11 @@ struct ltt_ust_event *trace_ust_create_event(struct lttng_event *ev,
 	switch (ev->type) {
 	case LTTNG_EVENT_PROBE:
 		lue->attr.instrumentation = LTTNG_UST_PROBE;
+		strncpy(lue->attr.u.object_name, ev->attr.probe.object_name, PATH_MAX);
 		break;
 	case LTTNG_EVENT_FUNCTION:
 		lue->attr.instrumentation = LTTNG_UST_FUNCTION;
-		break;
-	case LTTNG_EVENT_FUNCTION_ENTRY:
-		lue->attr.instrumentation = LTTNG_UST_FUNCTION;
+		strncpy(lue->attr.u.object_name, ev->attr.probe.object_name, PATH_MAX);
 		break;
 	case LTTNG_EVENT_TRACEPOINT:
 		lue->attr.instrumentation = LTTNG_UST_TRACEPOINT;
