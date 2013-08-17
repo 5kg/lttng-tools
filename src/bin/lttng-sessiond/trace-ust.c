@@ -324,11 +324,25 @@ struct ltt_ust_event *trace_ust_create_event(struct lttng_event *ev,
 	switch (ev->type) {
 	case LTTNG_EVENT_PROBE:
 		lue->attr.instrumentation = LTTNG_UST_PROBE;
-		strncpy(lue->attr.u.object_name, ev->attr.probe.object_name, PATH_MAX);
+		lue->attr.u.probe.addr = ev->attr.probe.addr;
+		lue->attr.u.probe.offset = ev->attr.probe.offset;
+		strncpy(lue->attr.u.probe.symbol_name,
+				ev->attr.probe.symbol_name, LTTNG_UST_SYM_NAME_LEN);
+		lue->attr.u.probe.symbol_name[LTTNG_UST_SYM_NAME_LEN - 1] = '\0';
+		strncpy(lue->attr.u.probe.object_name,
+				ev->attr.probe.object_name, PATH_MAX);
+		lue->attr.u.probe.object_name[PATH_MAX - 1] = '\0';
 		break;
 	case LTTNG_EVENT_FUNCTION:
 		lue->attr.instrumentation = LTTNG_UST_FUNCTION;
-		strncpy(lue->attr.u.object_name, ev->attr.probe.object_name, PATH_MAX);
+		lue->attr.u.probe.addr = ev->attr.probe.addr;
+		lue->attr.u.probe.offset = ev->attr.probe.offset;
+		strncpy(lue->attr.u.probe.symbol_name,
+				ev->attr.probe.symbol_name, LTTNG_UST_SYM_NAME_LEN);
+		lue->attr.u.probe.symbol_name[LTTNG_UST_SYM_NAME_LEN - 1] = '\0';
+		strncpy(lue->attr.u.probe.object_name,
+				ev->attr.probe.object_name, PATH_MAX);
+		lue->attr.u.probe.object_name[PATH_MAX - 1] = '\0';
 		break;
 	case LTTNG_EVENT_TRACEPOINT:
 		lue->attr.instrumentation = LTTNG_UST_TRACEPOINT;
