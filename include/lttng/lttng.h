@@ -222,7 +222,7 @@ struct lttng_event_context {
  * Event probe.
  *
  * Either addr is used or symbol_name and offset.
- * For dynamic instrumented UST probes, object_name is also used.
+ * For dynamic instrumented UST probes, object_path is also used.
  *
  * The structures should be initialized to zero before use.
  */
@@ -236,7 +236,7 @@ struct lttng_event_probe_attr {
 
 	char padding1[LTTNG_EVENT_PROBE_PADDING1];
 
-	char object_name[PATH_MAX];
+	char object_path[PATH_MAX];
 
 	char padding2[LTTNG_EVENT_PROBE_PADDING2];
 };
