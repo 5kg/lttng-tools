@@ -222,6 +222,7 @@ struct lttng_event_context {
  * Event probe.
  *
  * Either addr is used or symbol_name and offset.
+ * For dynamic instrumented UST probes, object_name is also used.
  *
  * The structures should be initialized to zero before use.
  */
