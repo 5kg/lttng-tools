@@ -227,15 +227,18 @@ struct lttng_event_context {
  * The structures should be initialized to zero before use.
  */
 #define LTTNG_EVENT_PROBE_PADDING1         16
+#define LTTNG_EVENT_PROBE_PADDING2         16
 struct lttng_event_probe_attr {
 	uint64_t addr;
 
 	uint64_t offset;
 	char symbol_name[LTTNG_SYMBOL_NAME_LEN];
 
+	char padding1[LTTNG_EVENT_PROBE_PADDING1];
+
 	char object_name[PATH_MAX];
 
-	char padding[LTTNG_EVENT_PROBE_PADDING1];
+	char padding2[LTTNG_EVENT_PROBE_PADDING2];
 };
 
 /*
