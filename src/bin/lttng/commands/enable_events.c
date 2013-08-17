@@ -291,9 +291,9 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 	/* TODO: support wildcard matching */
 	if ((pos = strrchr(opt, '@')) != NULL) {
 		len = min(pos - opt, PATH_MAX);
-		strncpy(ev->attr.probe.object_name, opt, len);
-		ev->attr.probe.object_name[len] = '\0';
-		DBG("probe object %s", ev->attr.probe.object_name);
+		strncpy(ev->attr.probe.object_path, opt, len);
+		ev->attr.probe.object_path[len] = '\0';
+		DBG("probe object %s", ev->attr.probe.object_path);
 		ret = parse_probe_opts(ev, pos+1);
 		goto end;
 	}
