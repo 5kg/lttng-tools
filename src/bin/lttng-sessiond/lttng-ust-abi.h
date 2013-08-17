@@ -110,7 +110,7 @@ struct lttng_ust_probe {
 	uint64_t offset;
 	char symbol_name[LTTNG_UST_SYM_NAME_LEN];
 
-	char object_name[PATH_MAX];
+	char object_path[PATH_MAX];
 } LTTNG_PACKED;
 
 #define LTTNG_UST_EVENT_PADDING1	16
