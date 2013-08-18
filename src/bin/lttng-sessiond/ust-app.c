@@ -4836,6 +4836,30 @@ int ust_app_recv_notify(int sock)
 
 		break;
 	}
+	case USTCTL_NOTIFY_CMD_INSTRUMENT:
+	{
+		int sobjd;
+		enum lttng_ust_instrumentation instrumentation;
+		char symbol[LTTNG_UST_SYM_NAME_LEN];
+		uint64_t addr, offset;
+
+		DBG2("UST app ustctl instrument probe received");
+
+		ret = ustctl_recv_instrument_probe(sock, &sobjd, &instrumentation,
+				&addr, symbol, &offset);
+		if (ret < 0) {
+			if (ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
+				ERR("UST app recv instrument failed with ret %d", ret);
+			} else {
+				DBG3("UST app recv instrument failed. Application died");
+			}
+			goto error;
+		}
+
+		/* ret = lttng_ust_instrument_probe(sobjd, instrumentation, addr, symbol, offset); */
+
+		break;
+	}
 	default:
 		/* Should NEVER happen. */
 		assert(0);
