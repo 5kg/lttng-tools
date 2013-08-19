@@ -11,6 +11,7 @@ lttng_sessiond_SOURCES = utils.c utils.h \
                        kernel.c kernel.h \
                        ust-ctl.h ust-app.h trace-ust.h ust-thread.h \
                        ust-registry.h \
+                       ust-instrument.h \
                        context.c context.h \
                        channel.c channel.h \
                        event.c event.h \
@@ -31,7 +32,8 @@ lttng_sessiond_SOURCES = utils.c utils.h \
 if HAVE_LIBLTTNG_UST_CTL
 lttng_sessiond_SOURCES += trace-ust.c ust-registry.c ust-app.c \
 			ust-consumer.c ust-consumer.h ust-thread.c \
-			ust-metadata.c ust-clock.h
+			ust-metadata.c ust-clock.h \
+			ust-instrument.c
 endif
 
 # Add main.c at the end for compile order

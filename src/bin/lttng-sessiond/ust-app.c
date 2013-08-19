@@ -38,6 +38,7 @@
 #include "ust-app.h"
 #include "ust-consumer.h"
 #include "ust-ctl.h"
+#include "ust-instrument.h"
 #include "utils.h"
 
 /* Next available channel key. Access under next_channel_key_lock. */
@@ -4795,7 +4796,8 @@ int ust_app_recv_notify(int sock)
 			goto error;
 		}
 
-		/* ret = lttng_ust_instrument_probe(sobjd, instrumentation, addr, symbol, offset); */
+		ret = lttng_ust_instrument_probe(sobjd, instrumentation,
+				addr, symbol, offset);
 
 		break;
 	}
