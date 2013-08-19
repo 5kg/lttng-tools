@@ -19,7 +19,7 @@
 
 #include "ust-instrument.h"
 
-int lttng_ust_instrument_probe(int sobjd,
+int lttng_ust_instrument_probe(int sock,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
 		const char *symbol,

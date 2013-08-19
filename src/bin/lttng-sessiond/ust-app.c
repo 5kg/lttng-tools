@@ -4839,14 +4839,13 @@ int ust_app_recv_notify(int sock)
 	}
 	case USTCTL_NOTIFY_CMD_INSTRUMENT:
 	{
-		int sobjd;
 		enum lttng_ust_instrumentation instrumentation;
 		char symbol[LTTNG_UST_SYM_NAME_LEN];
 		uint64_t addr, offset;
 
 		DBG2("UST app ustctl instrument probe received");
 
-		ret = ustctl_recv_instrument_probe(sock, &sobjd, &instrumentation,
+		ret = ustctl_recv_instrument_probe(sock, &instrumentation,
 				&addr, symbol, &offset);
 		if (ret < 0) {
 			if (ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
@@ -4857,7 +4856,7 @@ int ust_app_recv_notify(int sock)
 			goto error;
 		}
 
-		ret = lttng_ust_instrument_probe(sobjd, instrumentation,
+		ret = lttng_ust_instrument_probe(sock, instrumentation,
 				addr, symbol, offset);
 
 		break;
