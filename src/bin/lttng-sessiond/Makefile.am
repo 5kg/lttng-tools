@@ -35,6 +35,9 @@ lttng_sessiond_SOURCES += trace-ust.c ust-registry.c ust-app.c \
 			ust-consumer.c ust-consumer.h ust-thread.c \
 			ust-metadata.c ust-clock.h jul-thread.c jul-thread.h \
 			ust-instrument.c
+if HAVE_DYNINST
+lttng_sessiond_SOURCES += ust-instrument-dyninst.cpp
+endif
 endif
 
 # Add main.c at the end for compile order
