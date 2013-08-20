@@ -293,8 +293,24 @@ AX_CONFIG_FEATURE(
 )
 AM_CONDITIONAL([COMPAT_EPOLL], [ test "$enable_epoll" = "yes" ])
 
+# Option to build with dyninst
+# TODO: support custom prefix
+AC_ARG_WITH([dyninst],
+	AS_HELP_STRING([--with-dyninst],[Build with dyninst library [default=no]]),
+	[has_dyninst=$withval],
+	[has_dyninst=no])
+
+# TODO: check library and header
+AS_IF([test "x$has_dyninst" != "xno"], [
+	AC_DEFINE([HAS_DYNINST], [1], [has dyninst library])
+	build_with_dyninst=yes
+])
+AM_CONDITIONAL([BUILD_WITH_DYNINST], [test "x$build_with_dyninst" = "xyes"])
+
 AC_SYS_LARGEFILE
 AC_PROG_CC
+# TODO: require CXX based on $has_dyninst
+AC_PROG_CXX
 LT_INIT
 AC_PROG_YACC
 AC_PROG_LEX
