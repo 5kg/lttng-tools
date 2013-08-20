@@ -54,7 +54,6 @@ UST_DATA_TRACE=$(top_builddir)/src/bin/lttng-sessiond/trace-ust.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/ust-metadata.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/ust-app.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/ust-consumer.o \
-		   $(top_builddir)/src/bin/lttng-sessiond/ust-instrument.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/fd-limit.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/session.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/snapshot.o \
@@ -63,6 +62,10 @@ UST_DATA_TRACE=$(top_builddir)/src/bin/lttng-sessiond/trace-ust.o \
 		   $(top_builddir)/src/common/.libs/utils.o \
 		   $(top_builddir)/src/common/health/libhealth.la \
 		   $(top_builddir)/src/common/sessiond-comm/libsessiond-comm.la
+
+if HAVE_DYNINST
+UST_DATA_TRACE += $(top_builddir)/src/bin/lttng-sessiond/ust-instrument-dyninst.o
+endif
 
 test_ust_data_SOURCES = test_ust_data.c
 test_ust_data_LDADD = $(LIBTAP) $(LIBCOMMON) $(LIBRELAYD) $(LIBSESSIOND_COMM)\

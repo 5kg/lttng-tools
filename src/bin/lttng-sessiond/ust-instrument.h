@@ -22,24 +22,29 @@
 
 #include "trace-ust.h"
 
+#ifdef HAVE_UST_INSTRUMENT_PROBE
+
 #ifdef HAVE_LIBLTTNG_UST_CTL
 
-int lttng_ust_instrument_probe(int sock,
+int ust_instrument_probe(struct ust_app* app,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
 		const char *symbol,
 		uint64_t offset);
 
-#else /* HAVE_LIBLTTNG_UST_CTL */
+#endif /* HAVE_LIBLTTNG_UST_CTL */
+
+#else /* HAVE_UST_INSTRUMENT_PROBE */
 
 static inline
-int lttng_ust_instrument_probe(int sobjd,
+int ust_instrument_probe(struct ust_app *app,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr, const char *symbol, uint64_t offset)
 {
 	return -ENOSYS;
 }
 
-#endif /* HAVE_LIBLTTNG_UST_CTL */
+#endif /* HAVE_UST_INSTRUMENT_PROBE */
+
 
 #endif /* _LTT_UST_INSTRUEMENT_H */
