@@ -50,13 +50,16 @@ UST_DATA_TRACE=$(top_builddir)/src/bin/lttng-sessiond/trace-ust.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/ust-metadata.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/ust-app.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/ust-consumer.o \
-		   $(top_builddir)/src/bin/lttng-sessiond/ust-instrument.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/fd-limit.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/health.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/session.o \
 		   $(top_builddir)/src/bin/lttng-sessiond/snapshot.o \
 		   $(top_builddir)/src/common/.libs/uri.o \
 		   $(top_builddir)/src/common/.libs/utils.o
+
+if HAVE_DYNINST
+UST_DATA_TRACE += $(top_builddir)/src/bin/lttng-sessiond/ust-instrument-dyninst.o
+endif
 
 test_ust_data_SOURCES = test_ust_data.c
 test_ust_data_LDADD = $(LIBTAP) $(LIBCOMMON) $(LIBSESSIOND_COMM) $(LIBHASHTABLE) \

@@ -4781,6 +4781,7 @@ int ust_app_recv_notify(int sock)
 		enum lttng_ust_instrumentation instrumentation;
 		char symbol[LTTNG_UST_SYM_NAME_LEN];
 		uint64_t addr, offset;
+		struct ust_app *app;
 
 		DBG2("UST app ustctl instrument probe received");
 
@@ -4795,7 +4796,21 @@ int ust_app_recv_notify(int sock)
 			goto error;
 		}
 
-		ret = lttng_ust_instrument_probe(sock, instrumentation,
+		rcu_read_lock();
+
+		app = find_app_by_sock(sock);
+		if (app == NULL) {
+			DBG3("UST app instrument failed to find app sock %d", sock);
+			goto error;
+		}
+
+		if (!app->compatible) {
+			goto error;
+		}
+
+		rcu_read_unlock();
+
+		ret = ust_instrument_probe(app, instrumentation,
 				addr, symbol, offset);
 
 		break;

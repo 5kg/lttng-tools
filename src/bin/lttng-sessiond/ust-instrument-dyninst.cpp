@@ -15,15 +15,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define _GNU_SOURCE
-
+extern "C" {
+#include "ust-app.h"
 #include "ust-instrument.h"
+}
 
-int lttng_ust_instrument_probe(int sock,
+int ust_instrument_probe(struct ust_app* app,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
 		const char *symbol,
 		uint64_t offset)
 {
+
 	return 0;
 }
