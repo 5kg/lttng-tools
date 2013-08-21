@@ -4859,7 +4859,7 @@ int ust_app_recv_notify(int sock)
 
 		rcu_read_lock();
 
-		app = find_app_by_sock(sock);
+		app = find_app_by_notify_sock(sock);
 		if (app == NULL) {
 			DBG3("UST app instrument failed to find app sock %d", sock);
 			goto error;
@@ -4874,6 +4874,18 @@ int ust_app_recv_notify(int sock)
 		ret = ust_instrument_probe(app, instrumentation,
 				addr, symbol, offset);
 
+		DBG3("UST app replying to instrument probe with pid %u, ret: %d",
+				app->pid, ret);
+
+		ret = ustctl_reply_instrument_probe(sock, ret);
+		if (ret < 0) {
+			if (ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
+				ERR("UST app reply instrument failed with ret %d", ret);
+			} else {
+				DBG3("UST app reply instrument failed. Application died");
+			}
+			goto error;
+		}
 		break;
 	}
 	default:
