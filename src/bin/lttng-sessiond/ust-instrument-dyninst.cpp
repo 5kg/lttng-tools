@@ -21,11 +21,11 @@ extern "C" {
 }
 
 int ust_instrument_probe(struct ust_app* app,
+		const char* name,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
 		const char *symbol,
 		uint64_t offset)
 {
-
 	return 0;
 }
