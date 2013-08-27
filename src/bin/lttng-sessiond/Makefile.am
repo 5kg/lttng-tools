@@ -57,4 +57,7 @@ lttng_sessiond_LDADD = -lrt -lurcu-common -lurcu \
 
 if HAVE_LIBLTTNG_UST_CTL
 lttng_sessiond_LDADD += -llttng-ust-ctl
+if HAVE_DYNINST
+lttng_sessiond_LDADD += -ldyninstAPI
+endif
 endif
