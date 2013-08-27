@@ -65,6 +65,11 @@ test_ust_data_SOURCES = test_ust_data.c
 test_ust_data_LDADD = $(LIBTAP) $(LIBCOMMON) $(LIBSESSIOND_COMM) $(LIBHASHTABLE) \
 					  -lrt -llttng-ust-ctl
 test_ust_data_LDADD += $(UST_DATA_TRACE)
+
+if HAVE_DYNINST
+test_ust_data_LDADD += -lstdc++ -ldyninstAPI
+endif
+
 endif
 
 # Kernel data structures unit test
