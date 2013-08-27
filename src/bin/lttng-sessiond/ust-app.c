@@ -4952,13 +4952,14 @@ int ust_app_recv_notify(int sock)
 	{
 		enum lttng_ust_instrumentation instrumentation;
 		char name[LTTNG_UST_SYM_NAME_LEN], symbol[LTTNG_UST_SYM_NAME_LEN];
+		char object_path[PATH_MAX];
 		uint64_t addr, offset;
 		struct ust_app *app;
 
 		DBG2("UST app ustctl instrument probe received");
 
-		ret = ustctl_recv_instrument_probe(sock, name, &instrumentation,
-				&addr, symbol, &offset);
+		ret = ustctl_recv_instrument_probe(sock, object_path, name,
+				&instrumentation, &addr, symbol, &offset);
 		if (ret < 0) {
 			if (ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
 				ERR("UST app recv instrument failed with ret %d", ret);
@@ -4982,7 +4983,7 @@ int ust_app_recv_notify(int sock)
 
 		rcu_read_unlock();
 
-		ret = ust_instrument_probe(app, name, instrumentation,
+		ret = ust_instrument_probe(app, object_path, name, instrumentation,
 				addr, symbol, offset);
 
 		DBG3("UST app replying to instrument probe with pid %u, ret: %d",

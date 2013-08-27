@@ -21,6 +21,7 @@ extern "C" {
 }
 
 int ust_instrument_probe(struct ust_app* app,
+		const char* object_path,
 		const char* name,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
