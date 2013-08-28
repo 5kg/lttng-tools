@@ -320,6 +320,8 @@ AC_SYS_LARGEFILE
 AC_PROG_CC
 AS_IF([test "x$build_with_dyninst" = "xyes"], [
 	AC_PROG_CXX
+],[
+	AM_CONDITIONAL([am__fastdepCXX], [false])
 ])
 LT_INIT
 AC_PROG_YACC
