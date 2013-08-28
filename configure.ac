@@ -363,11 +363,7 @@ AM_CONDITIONAL([HAVE_DYNINST], [test "x$build_with_dyninst" = "xyes"])
 
 AC_SYS_LARGEFILE
 AC_PROG_CC
-AS_IF([test "x$build_with_dyninst" = "xyes"], [
-	AC_PROG_CXX
-],[
-	AM_CONDITIONAL([am__fastdepCXX], [false])
-])
+AC_PROG_CXX
 LT_INIT
 AC_PROG_YACC
 AC_PROG_LEX
