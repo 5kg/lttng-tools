@@ -22,9 +22,7 @@
 
 #include "trace-ust.h"
 
-#ifdef HAVE_UST_INSTRUMENT_PROBE
-
-#ifdef HAVE_LIBLTTNG_UST_CTL
+#if defined(HAVE_UST_INSTRUMENT_PROBE) && defined(HAVE_LIBLTTNG_UST_CTL)
 
 int ust_instrument_probe(struct ust_app* app,
 		const char *object_path,
@@ -34,9 +32,7 @@ int ust_instrument_probe(struct ust_app* app,
 		const char *symbol,
 		uint64_t offset);
 
-#endif /* HAVE_LIBLTTNG_UST_CTL */
-
-#else /* HAVE_UST_INSTRUMENT_PROBE */
+#else /* HAVE_UST_INSTRUMENT_PROBE && HAVE_LIBLTTNG_UST_CTL */
 
 static inline
 int ust_instrument_probe(struct ust_app *app, const char* object_path,
@@ -46,7 +42,6 @@ int ust_instrument_probe(struct ust_app *app, const char* object_path,
 	return -ENOSYS;
 }
 
-#endif /* HAVE_UST_INSTRUMENT_PROBE */
-
+#endif /* HAVE_UST_INSTRUMENT_PROBE && HAVE_LIBLTTNG_UST_CTL */
 
 #endif /* _LTT_UST_INSTRUEMENT_H */
