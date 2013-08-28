@@ -364,6 +364,7 @@ void delete_ust_app_channel(int sock, struct ust_app_channel *ua_chan,
 
 	/* Wipe context */
 	cds_lfht_for_each_entry(ua_chan->ctx->ht, &iter.iter, ua_ctx, node.node) {
+		cds_list_del(&ua_ctx->list);
 		ret = lttng_ht_del(ua_chan->ctx, &iter);
 		assert(!ret);
 		delete_ust_app_ctx(sock, ua_ctx);
@@ -825,6 +826,7 @@ struct ust_app_channel *alloc_ust_app_channel(char *name,
 	lttng_ht_node_init_str(&ua_chan->node, ua_chan->name);
 
 	CDS_INIT_LIST_HEAD(&ua_chan->streams.head);
+	CDS_INIT_LIST_HEAD(&ua_chan->ctx_list);
 
 	/* Copy attributes */
 	if (attr) {
@@ -915,6 +917,8 @@ struct ust_app_ctx *alloc_ust_app_ctx(struct lttng_ust_context *uctx)
 	if (ua_ctx == NULL) {
 		goto error;
 	}
+
+	CDS_INIT_LIST_HEAD(&ua_ctx->list);
 
 	if (uctx) {
 		memcpy(&ua_ctx->ctx, uctx, sizeof(ua_ctx->ctx));
@@ -1051,6 +1055,12 @@ int create_ust_channel_context(struct ust_app_channel *ua_chan,
 			ERR("UST app create channel context failed for app (pid: %d) "
 					"with ret %d", app->pid, ret);
 		} else {
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			ret = 0;
 			DBG3("UST app disable event failed. Application is dead.");
 		}
 		goto error;
@@ -1089,6 +1099,12 @@ int set_ust_event_filter(struct ust_app_event *ua_event,
 			ERR("UST app event %s filter failed for app (pid: %d) "
 					"with ret %d", ua_event->attr.name, app->pid, ret);
 		} else {
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			ret = 0;
 			DBG3("UST app filter event failed. Application is dead.");
 		}
 		goto error;
@@ -1118,6 +1134,12 @@ static int disable_ust_event(struct ust_app *app,
 					"and session handle %d with ret %d",
 					ua_event->attr.name, app->pid, ua_sess->handle, ret);
 		} else {
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			ret = 0;
 			DBG3("UST app disable event failed. Application is dead.");
 		}
 		goto error;
@@ -1148,6 +1170,12 @@ static int disable_ust_channel(struct ust_app *app,
 					"and session handle %d with ret %d",
 					ua_chan->name, app->pid, ua_sess->handle, ret);
 		} else {
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			ret = 0;
 			DBG3("UST app disable channel failed. Application is dead.");
 		}
 		goto error;
@@ -1178,6 +1206,12 @@ static int enable_ust_channel(struct ust_app *app,
 					"and session handle %d with ret %d",
 					ua_chan->name, app->pid, ua_sess->handle, ret);
 		} else {
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			ret = 0;
 			DBG3("UST app enable channel failed. Application is dead.");
 		}
 		goto error;
@@ -1210,6 +1244,12 @@ static int enable_ust_event(struct ust_app *app,
 					"and session handle %d with ret %d",
 					ua_event->attr.name, app->pid, ua_sess->handle, ret);
 		} else {
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			ret = 0;
 			DBG3("UST app enable event failed. Application is dead.");
 		}
 		goto error;
@@ -1290,6 +1330,12 @@ int create_ust_event(struct ust_app *app, struct ust_app_session *ua_sess,
 			ERR("Error ustctl create event %s for app pid: %d with ret %d",
 					ua_event->attr.name, app->pid, ret);
 		} else {
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			ret = 0;
 			DBG3("UST app create event failed. Application is dead.");
 		}
 		goto error;
@@ -1395,7 +1441,7 @@ static void shadow_copy_channel(struct ust_app_channel *ua_chan,
 	ua_chan->enabled = uchan->enabled;
 	ua_chan->tracing_channel_id = uchan->id;
 
-	cds_lfht_for_each_entry(uchan->ctx->ht, &iter.iter, uctx, node.node) {
+	cds_list_for_each_entry(uctx, &uchan->ctx_list, list) {
 		ua_ctx = alloc_ust_app_ctx(&uctx->ctx);
 		if (ua_ctx == NULL) {
 			continue;
@@ -1403,6 +1449,7 @@ static void shadow_copy_channel(struct ust_app_channel *ua_chan,
 		lttng_ht_node_init_ulong(&ua_ctx->node,
 				(unsigned long) ua_ctx->ctx.ctx);
 		lttng_ht_add_unique_ulong(ua_chan->ctx, &ua_ctx->node);
+		cds_list_add_tail(&ua_ctx->list, &ua_chan->ctx_list);
 	}
 
 	/* Copy all events from ltt ust channel to ust app channel */
@@ -1727,6 +1774,13 @@ static int create_ust_app_session(struct ltt_ust_session *usess,
 						app->pid, ret);
 			} else {
 				DBG("UST app creating session failed. Application is dead");
+				/*
+				 * This is normal behavior, an application can die during the
+				 * creation process. Don't report an error so the execution can
+				 * continue normally. This will get flagged ENOTCONN and the
+				 * caller will handle it.
+				 */
+				ret = 0;
 			}
 			delete_ust_app_session(-1, ua_sess, app);
 			if (ret != -ENOMEM) {
@@ -1795,6 +1849,7 @@ int create_ust_app_channel_context(struct ust_app_session *ua_sess,
 
 	lttng_ht_node_init_ulong(&ua_ctx->node, (unsigned long) ua_ctx->ctx.ctx);
 	lttng_ht_add_unique_ulong(ua_chan->ctx, &ua_ctx->node);
+	cds_list_add_tail(&ua_ctx->list, &ua_chan->ctx_list);
 
 	ret = create_ust_channel_context(ua_chan, ua_ctx, app);
 	if (ret < 0) {
@@ -2994,6 +3049,12 @@ int ust_app_list_events(struct lttng_event **events)
 							app->sock, ret);
 				} else {
 					DBG3("UST app tp list get failed. Application is dead");
+					/*
+					 * This is normal behavior, an application can die during the
+					 * creation process. Don't report an error so the execution can
+					 * continue normally. Continue normal execution.
+					 */
+					break;
 				}
 				goto rcu_error;
 			}
@@ -3088,6 +3149,12 @@ int ust_app_list_event_fields(struct lttng_event_field **fields)
 							app->sock, ret);
 				} else {
 					DBG3("UST app tp list field failed. Application is dead");
+					/*
+					 * This is normal behavior, an application can die during the
+					 * creation process. Don't report an error so the execution can
+					 * continue normally.
+					 */
+					break;
 				}
 				goto rcu_error;
 			}
@@ -3703,6 +3770,13 @@ skip_setup:
 					app->pid, ret);
 		} else {
 			DBG("UST app start session failed. Application is dead.");
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			pthread_mutex_unlock(&ua_sess->lock);
+			goto end;
 		}
 		goto error_unlock;
 	}
@@ -3778,6 +3852,12 @@ int ust_app_stop_trace(struct ltt_ust_session *usess, struct ust_app *app)
 					app->pid, ret);
 		} else {
 			DBG("UST app stop session failed. Application is dead.");
+			/*
+			 * This is normal behavior, an application can die during the
+			 * creation process. Don't report an error so the execution can
+			 * continue normally.
+			 */
+			goto end_unlock;
 		}
 		goto error_rcu_unlock;
 	}
@@ -3801,6 +3881,7 @@ int ust_app_stop_trace(struct ltt_ust_session *usess, struct ust_app *app)
 		(void) push_metadata(registry, ua_sess->consumer);
 	}
 
+end_unlock:
 	pthread_mutex_unlock(&ua_sess->lock);
 end_no_session:
 	rcu_read_unlock();
@@ -3855,8 +3936,11 @@ int ust_app_flush_trace(struct ltt_ust_session *usess, struct ust_app *app)
 			} else {
 				DBG3("UST app failed to flush %s. Application is dead.",
 						ua_chan->name);
-				/* No need to continue. */
-				break;
+				/*
+				 * This is normal behavior, an application can die during the
+				 * creation process. Don't report an error so the execution can
+				 * continue normally.
+				 */
 			}
 			/* Continuing flushing all buffers */
 			continue;
@@ -4052,7 +4136,7 @@ int ust_app_destroy_trace_all(struct ltt_ust_session *usess)
 void ust_app_global_update(struct ltt_ust_session *usess, int sock)
 {
 	int ret = 0;
-	struct lttng_ht_iter iter, uiter, iter_ctx;
+	struct lttng_ht_iter iter, uiter;
 	struct ust_app *app;
 	struct ust_app_session *ua_sess = NULL;
 	struct ust_app_channel *ua_chan;
@@ -4124,8 +4208,11 @@ void ust_app_global_update(struct ltt_ust_session *usess, int sock)
 			}
 		}
 
-		cds_lfht_for_each_entry(ua_chan->ctx->ht, &iter_ctx.iter, ua_ctx,
-				node.node) {
+		/*
+		 * Add context using the list so they are enabled in the same order the
+		 * user added them.
+		 */
+		cds_list_for_each_entry(ua_ctx, &ua_chan->ctx_list, list) {
 			ret = create_ust_channel_context(ua_chan, ua_ctx, app);
 			if (ret < 0) {
 				goto error_unlock;
@@ -4655,7 +4742,8 @@ static int add_event_ust_registry(int sock, int sobjd, int cobjd, char *name,
 	 */
 	ret_code = ust_registry_create_event(registry, chan_reg_key,
 			sobjd, cobjd, name, sig, nr_fields, fields, loglevel,
-			model_emf_uri, ua_sess->buffer_type, &event_id);
+			model_emf_uri, ua_sess->buffer_type, &event_id,
+			app);
 
 	/*
 	 * The return value is returned to ustctl so in case of an error, the

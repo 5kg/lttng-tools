@@ -462,9 +462,6 @@ static int init_kernel_tracing(struct ltt_kernel_session *session)
 	if (session->consumer_fds_sent == 0 && session->consumer != NULL) {
 		cds_lfht_for_each_entry(session->consumer->socks->ht, &iter.iter,
 				socket, node.node) {
-			/* Code flow error */
-			assert(socket->fd >= 0);
-
 			pthread_mutex_lock(socket->lock);
 			ret = kernel_consumer_send_session(socket, session);
 			pthread_mutex_unlock(socket->lock);
@@ -674,9 +671,6 @@ int cmd_setup_relayd(struct ltt_session *session)
 		/* For each consumer socket, send relayd sockets */
 		cds_lfht_for_each_entry(usess->consumer->socks->ht, &iter.iter,
 				socket, node.node) {
-			/* Code flow error */
-			assert(socket->fd >= 0);
-
 			pthread_mutex_lock(socket->lock);
 			ret = send_consumer_relayd_sockets(LTTNG_DOMAIN_UST, session->id,
 					usess->consumer, socket);
@@ -693,9 +687,6 @@ int cmd_setup_relayd(struct ltt_session *session)
 			&& ksess->consumer->enabled) {
 		cds_lfht_for_each_entry(ksess->consumer->socks->ht, &iter.iter,
 				socket, node.node) {
-			/* Code flow error */
-			assert(socket->fd >= 0);
-
 			pthread_mutex_lock(socket->lock);
 			ret = send_consumer_relayd_sockets(LTTNG_DOMAIN_KERNEL, session->id,
 					ksess->consumer, socket);
@@ -859,15 +850,6 @@ int cmd_enable_channel(struct ltt_session *session,
 
 	rcu_read_lock();
 
-	/*
-	 * Don't try to enable a channel if the session has been started at
-	 * some point in time before. The tracer does not allow it.
-	 */
-	if (session->started) {
-		ret = LTTNG_ERR_TRACE_ALREADY_STARTED;
-		goto error;
-	}
-
 	switch (domain->type) {
 	case LTTNG_DOMAIN_KERNEL:
 	{
@@ -876,6 +858,15 @@ int cmd_enable_channel(struct ltt_session *session,
 		kchan = trace_kernel_get_channel_by_name(attr->name,
 				session->kernel_session);
 		if (kchan == NULL) {
+			/*
+			 * Don't try to create a channel if the session
+			 * has been started at some point in time
+			 * before. The tracer does not allow it.
+			 */
+			if (session->started) {
+				ret = LTTNG_ERR_TRACE_ALREADY_STARTED;
+				goto error;
+			}
 			ret = channel_kernel_create(session->kernel_session, attr, wpipe);
 			if (attr->name[0] != '\0') {
 				session->kernel_session->has_non_default_channel = 1;
@@ -899,6 +890,15 @@ int cmd_enable_channel(struct ltt_session *session,
 
 		uchan = trace_ust_find_channel_by_name(chan_ht, attr->name);
 		if (uchan == NULL) {
+			/*
+			 * Don't try to create a channel if the session
+			 * has been started at some point in time
+			 * before. The tracer does not allow it.
+			 */
+			if (session->started) {
+				ret = LTTNG_ERR_TRACE_ALREADY_STARTED;
+				goto error;
+			}
 			ret = channel_ust_create(usess, attr, domain->buf_type);
 			if (attr->name[0] != '\0') {
 				usess->has_non_default_channel = 1;
@@ -1115,17 +1115,6 @@ int cmd_add_context(struct ltt_session *session, int domain,
 	case LTTNG_DOMAIN_KERNEL:
 		assert(session->kernel_session);
 
-		/*
-		 * If a non-default channel has been created in the
-		 * session, explicitely require that -c chan_name needs
-		 * to be provided.
-		 */
-		if (session->kernel_session->has_non_default_channel
-				&& channel_name[0] == '\0') {
-			ret = LTTNG_ERR_NEED_CHANNEL_NAME;
-			goto error;
-		}
-
 		if (session->kernel_session->channel_count == 0) {
 			/* Create default channel */
 			ret = channel_kernel_create(session->kernel_session, NULL, kwpipe);
@@ -1146,16 +1135,6 @@ int cmd_add_context(struct ltt_session *session, int domain,
 		unsigned int chan_count;
 
 		assert(usess);
-
-		/*
-		 * If a non-default channel has been created in the
-		 * session, explicitely require that -c chan_name needs
-		 * to be provided.
-		 */
-		if (usess->has_non_default_channel && channel_name[0] == '\0') {
-			ret = LTTNG_ERR_NEED_CHANNEL_NAME;
-			goto error;
-		}
 
 		chan_count = lttng_ht_get_count(usess->domain_global.channels);
 		if (chan_count == 0) {
@@ -2039,13 +2018,15 @@ int cmd_register_consumer(struct ltt_session *session, int domain,
 			ret = LTTNG_ERR_CONNECT_FAIL;
 			goto error;
 		}
+		cdata->cmd_sock = sock;
 
-		socket = consumer_allocate_socket(sock);
+		socket = consumer_allocate_socket(&cdata->cmd_sock);
 		if (socket == NULL) {
 			ret = close(sock);
 			if (ret < 0) {
 				PERROR("close register consumer");
 			}
+			cdata->cmd_sock = -1;
 			ret = LTTNG_ERR_FATAL;
 			goto error;
 		}
@@ -2589,13 +2570,7 @@ static int record_kernel_snapshot(struct ltt_kernel_session *ksess,
 	}
 
 	ret = kernel_snapshot_record(ksess, output, wait, nb_streams);
-	if (ret < 0) {
-		if (ret == -EINVAL) {
-			ret = LTTNG_ERR_INVALID;
-			goto error_snapshot;
-		}
-
-		ret = LTTNG_ERR_SNAPSHOT_FAIL;
+	if (ret != LTTNG_OK) {
 		goto error_snapshot;
 	}
 
@@ -2848,6 +2823,8 @@ int cmd_snapshot_record(struct ltt_session *session,
 
 	if (snapshot_success) {
 		session->snapshot.nb_snapshot++;
+	} else {
+		ret = LTTNG_ERR_SNAPSHOT_FAIL;
 	}
 
 error:

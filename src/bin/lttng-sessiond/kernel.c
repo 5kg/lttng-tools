@@ -819,12 +819,12 @@ void kernel_destroy_channel(struct ltt_kernel_channel *kchan)
 /*
  * Take a snapshot for a given kernel session.
  *
- * Return 0 on success or else a negative value.
+ * Return 0 on success or else return a LTTNG_ERR code.
  */
 int kernel_snapshot_record(struct ltt_kernel_session *ksess,
 		struct snapshot_output *output, int wait, unsigned int nb_streams)
 {
-	int ret, saved_metadata_fd;
+	int err, ret, saved_metadata_fd;
 	struct consumer_socket *socket;
 	struct lttng_ht_iter iter;
 	struct ltt_kernel_metadata *saved_metadata;
@@ -863,8 +863,6 @@ int kernel_snapshot_record(struct ltt_kernel_session *ksess,
 			socket, node.node) {
 		struct consumer_output *saved_output;
 		struct ltt_kernel_channel *chan;
-		/* Code flow error */
-		assert(socket->fd >= 0);
 
 		/*
 		 * Temporarly switch consumer output for our snapshot output. As long
@@ -892,6 +890,8 @@ int kernel_snapshot_record(struct ltt_kernel_session *ksess,
 				DBG3("Kernel snapshot record maximum stream size %" PRIu64
 						" is smaller than subbuffer size of %" PRIu64,
 						max_size_per_stream, chan->channel->attr.subbuf_size);
+				(void) kernel_consumer_destroy_metadata(socket,
+						ksess->metadata);
 				goto error_consumer;
 			}
 
@@ -903,6 +903,8 @@ int kernel_snapshot_record(struct ltt_kernel_session *ksess,
 			pthread_mutex_unlock(socket->lock);
 			if (ret < 0) {
 				ret = LTTNG_ERR_KERN_CONSUMER_FAIL;
+				(void) kernel_consumer_destroy_metadata(socket,
+						ksess->metadata);
 				goto error_consumer;
 			}
 		}
@@ -927,8 +929,8 @@ int kernel_snapshot_record(struct ltt_kernel_session *ksess,
 
 error_consumer:
 	/* Close newly opened metadata stream. It's now on the consumer side. */
-	ret = close(ksess->metadata_stream_fd);
-	if (ret < 0) {
+	err = close(ksess->metadata_stream_fd);
+	if (err < 0) {
 		PERROR("close snapshot kernel");
 	}
 

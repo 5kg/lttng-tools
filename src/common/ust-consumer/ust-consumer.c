@@ -1178,6 +1178,13 @@ int lttng_ustconsumer_recv_cmd(struct lttng_consumer_local_data *ctx,
 			goto end_channel_error;
 		}
 
+		/*
+		 * Assign UST application UID to the channel. This value is ignored for
+		 * per PID buffers. This is specific to UST thus setting this after the
+		 * allocation.
+		 */
+		channel->ust_app_uid = msg.u.ask_channel.ust_app_uid;
+
 		/* Build channel attributes from received message. */
 		attr.subbuf_size = msg.u.ask_channel.subbuf_size;
 		attr.num_subbuf = msg.u.ask_channel.num_subbuf;
@@ -1739,6 +1746,12 @@ int lttng_ustconsumer_data_pending(struct lttng_consumer_stream *stream)
 	}
 
 	if (stream->chan->type == CONSUMER_CHANNEL_TYPE_METADATA) {
+		uint64_t contiguous, pushed;
+
+		/* Ease our life a bit. */
+		contiguous = stream->chan->metadata_cache->contiguous;
+		pushed = stream->ust_metadata_pushed;
+
 		/*
 		 * We can simply check whether all contiguously available data
 		 * has been pushed to the ring buffer, since the push operation
@@ -1750,10 +1763,10 @@ int lttng_ustconsumer_data_pending(struct lttng_consumer_stream *stream)
 		 * metadata has been consumed from the metadata stream.
 		 */
 		DBG("UST consumer metadata pending check: contiguous %" PRIu64 " vs pushed %" PRIu64,
-			stream->chan->metadata_cache->contiguous,
-			stream->ust_metadata_pushed);
-		if (stream->chan->metadata_cache->contiguous
-				!= stream->ust_metadata_pushed) {
+				contiguous, pushed);
+		assert(contiguous - pushed >= 0);
+		if ((contiguous != pushed) ||
+				(contiguous - pushed > 0 || contiguous == 0)) {
 			ret = 1;	/* Data is pending */
 			goto end;
 		}
@@ -1859,12 +1872,18 @@ int lttng_ustconsumer_request_metadata(struct lttng_consumer_local_data *ctx,
 
 	request.session_id = channel->session_id;
 	request.session_id_per_pid = channel->session_id_per_pid;
-	request.uid = channel->uid;
+	/*
+	 * Request the application UID here so the metadata of that application can
+	 * be sent back. The channel UID corresponds to the user UID of the session
+	 * used for the rights on the stream file(s).
+	 */
+	request.uid = channel->ust_app_uid;
 	request.key = channel->key;
+
 	DBG("Sending metadata request to sessiond, session id %" PRIu64
-			", per-pid %" PRIu64,
-			channel->session_id,
-			channel->session_id_per_pid);
+			", per-pid %" PRIu64 ", app UID %u and channek key %" PRIu64,
+			request.session_id, request.session_id_per_pid, request.uid,
+			request.key);
 
 	pthread_mutex_lock(&ctx->metadata_socket_lock);
 	ret = lttcomm_send_unix_sock(ctx->consumer_metadata_socket, &request,

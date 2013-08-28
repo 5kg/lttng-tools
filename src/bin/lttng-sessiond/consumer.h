@@ -33,8 +33,13 @@ enum consumer_dst_type {
 };
 
 struct consumer_socket {
-	/* File descriptor */
-	int fd;
+	/*
+	 * File descriptor. This is just a reference to the consumer data meaning
+	 * that every access must be locked and checked for a possible invalid
+	 * value.
+	 */
+	int *fd_ptr;
+
 	/*
 	 * To use this socket (send/recv), this lock MUST be acquired.
 	 */
@@ -87,13 +92,24 @@ struct consumer_data {
 	int err_sock;
 	/* These two sockets uses the cmd_unix_sock_path. */
 	int cmd_sock;
+	/*
+	 * The metadata socket object is handled differently and only created
+	 * locally in this object thus it's the only reference available in the
+	 * session daemon. For that reason, a variable for the fd is required and
+	 * the metadata socket fd points to it.
+	 */
+	int metadata_fd;
 	struct consumer_socket metadata_sock;
 
 	/* consumer error and command Unix socket path */
 	char err_unix_sock_path[PATH_MAX];
 	char cmd_unix_sock_path[PATH_MAX];
 
-	/* communication lock */
+	/*
+	 * This lock has two purposes. It protects any change to the consumer
+	 * socket and make sure only one thread uses this object for read/write
+	 * operations.
+	 */
 	pthread_mutex_t lock;
 };
 
@@ -157,7 +173,7 @@ struct consumer_socket *consumer_find_socket(int key,
 		struct consumer_output *consumer);
 struct consumer_socket *consumer_find_socket_by_bitness(int bits,
 		struct consumer_output *consumer);
-struct consumer_socket *consumer_allocate_socket(int fd);
+struct consumer_socket *consumer_allocate_socket(int *fd);
 void consumer_add_socket(struct consumer_socket *sock,
 		struct consumer_output *consumer);
 void consumer_del_socket(struct consumer_socket *sock,
@@ -166,6 +182,10 @@ void consumer_destroy_socket(struct consumer_socket *sock);
 int consumer_copy_sockets(struct consumer_output *dst,
 		struct consumer_output *src);
 void consumer_destroy_output_sockets(struct consumer_output *obj);
+int consumer_socket_send(struct consumer_socket *socket, void *msg,
+		size_t len);
+int consumer_socket_recv(struct consumer_socket *socket, void *msg,
+		size_t len);
 
 struct consumer_output *consumer_create_output(enum consumer_dst_type type);
 struct consumer_output *consumer_copy_output(struct consumer_output *obj);
@@ -214,7 +234,8 @@ void consumer_init_ask_channel_comm_msg(struct lttcomm_consumer_msg *msg,
 		uint64_t tracefile_size,
 		uint64_t tracefile_count,
 		uint64_t session_id_per_pid,
-		unsigned int monitor);
+		unsigned int monitor,
+		uint32_t ust_app_uid);
 void consumer_init_stream_comm_msg(struct lttcomm_consumer_msg *msg,
 		enum lttng_consumer_command cmd,
 		uint64_t channel_key,

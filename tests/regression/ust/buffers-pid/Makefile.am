@@ -1,7 +1,5 @@
-noinst_LTLIBRARIES = libtap.la
-libtap_la_SOURCES = tap.c tap.h
-dist_noinst_SCRIPTS = tap.sh
-EXTRA_DIST = tap.sh
+noinst_SCRIPTS = test_buffers_pid
+EXTRA_DIST = test_buffers_pid
 
 all-local:
 	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \

@@ -14,9 +14,9 @@ patchlevel_version=$(echo AC_PACKAGE_VERSION | sed 's/^[[0-9]]*\.[[0-9]]*\.\([[0
 AC_SUBST([MAJOR_VERSION], [$major_version])
 AC_SUBST([MINOR_VERSION], [$minor_version])
 AC_SUBST([PATCHLEVEL_VERSION], [$patchlevel_version])
-AC_DEFINE_UNQUOTED([VERSION_MAJOR], $major_version, [UST major version number])
-AC_DEFINE_UNQUOTED([VERSION_MINOR], $minor_version, [UST minor version number])
-AC_DEFINE_UNQUOTED([VERSION_PATCHLEVEL], $patchlevel_version, [UST patchlevel version number])
+AC_DEFINE_UNQUOTED([VERSION_MAJOR], $major_version, [LTTng-Tools major version number])
+AC_DEFINE_UNQUOTED([VERSION_MINOR], $minor_version, [LTTng-Tools minor version number])
+AC_DEFINE_UNQUOTED([VERSION_PATCHLEVEL], $patchlevel_version, [LTTng-Tools patchlevel version number])
 
 version_name="Dominus Vobiscum"
 version_description="A very succulent line-up of beers brewed at Microbrasserie Charlevoix. Elaborated starting from special malts and fermented with a Belgian yeast. These beers are refermented in bottle and will make you discover the richness of wheat, amber and triple styles."
@@ -110,6 +110,13 @@ AC_ARG_WITH([sessiond-bin],
 	[SESSIOND_BIN=''])
 AC_SUBST([SESSIOND_BIN])
 
+AC_ARG_WITH([lttng-system-rundir],
+	AS_HELP_STRING([--with-lttng-system-rundir],
+	[Location of the system directory where the system-wide lttng-sessiond runtime files are kept. The default is "/var/run/lttng".]),
+	[LTTNG_SYSTEM_RUNDIR="$withval"],
+	[LTTNG_SYSTEM_RUNDIR="/var/run/lttng"])
+AC_SUBST([LTTNG_SYSTEM_RUNDIR])
+
 AC_DEFINE_UNQUOTED([CONFIG_CONSUMERD32_BIN], "$CONSUMERD32_BIN", [Location of the 32-bit consumerd executable.])
 AC_DEFINE_UNQUOTED([CONFIG_CONSUMERD64_BIN], "$CONSUMERD64_BIN", [Location of the 64-bit consumerd executable])
 AC_DEFINE_UNQUOTED([CONFIG_CONSUMERD32_LIBDIR], "$CONSUMERD32_LIBDIR", [Search for consumerd 32-bit libraries in this location.])
@@ -117,6 +124,7 @@ AC_DEFINE_UNQUOTED([CONFIG_CONSUMERD64_LIBDIR], "$CONSUMERD64_LIBDIR", [Search f
 AC_DEFINE_UNQUOTED([CONFIG_BABELTRACE_BIN], "$BABELTRACE_BIN", [Location of the babeltrace viewer executable.])
 AC_DEFINE_UNQUOTED([CONFIG_LTTV_GUI_BIN], "$LTTV_GUI_BIN", [Location of the lttv GUI viewer executable.])
 AC_DEFINE_UNQUOTED([CONFIG_SESSIOND_BIN], "$SESSIOND_BIN", [Location of the sessiond executable.])
+AC_DEFINE_UNQUOTED([CONFIG_LTTNG_SYSTEM_RUNDIR], ["$LTTNG_SYSTEM_RUNDIR"], [LTTng system runtime directory])
 
 # Check for pthread
 AC_CHECK_LIB([pthread], [pthread_create], [],
@@ -368,7 +376,7 @@ AC_CONFIG_FILES([
 	tests/regression/ust/high-throughput/Makefile
 	tests/regression/ust/low-throughput/Makefile
 	tests/regression/ust/before-after/Makefile
-	tests/regression/ust/buffers-uid/Makefile
+	tests/regression/ust/buffers-pid/Makefile
 	tests/regression/ust/periodical-metadata-flush/Makefile
 	tests/regression/ust/multi-session/Makefile
 	tests/regression/ust/overlap/Makefile

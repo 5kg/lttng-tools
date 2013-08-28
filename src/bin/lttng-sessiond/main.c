@@ -90,7 +90,6 @@ static struct consumer_data kconsumer_data = {
 	.cmd_unix_sock_path = DEFAULT_KCONSUMERD_CMD_SOCK_PATH,
 	.err_sock = -1,
 	.cmd_sock = -1,
-	.metadata_sock.fd = -1,
 	.pid_mutex = PTHREAD_MUTEX_INITIALIZER,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.cond = PTHREAD_COND_INITIALIZER,
@@ -102,7 +101,6 @@ static struct consumer_data ustconsumer64_data = {
 	.cmd_unix_sock_path = DEFAULT_USTCONSUMERD64_CMD_SOCK_PATH,
 	.err_sock = -1,
 	.cmd_sock = -1,
-	.metadata_sock.fd = -1,
 	.pid_mutex = PTHREAD_MUTEX_INITIALIZER,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.cond = PTHREAD_COND_INITIALIZER,
@@ -114,7 +112,6 @@ static struct consumer_data ustconsumer32_data = {
 	.cmd_unix_sock_path = DEFAULT_USTCONSUMERD32_CMD_SOCK_PATH,
 	.err_sock = -1,
 	.cmd_sock = -1,
-	.metadata_sock.fd = -1,
 	.pid_mutex = PTHREAD_MUTEX_INITIALIZER,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.cond = PTHREAD_COND_INITIALIZER,
@@ -693,9 +690,6 @@ static int update_kernel_stream(struct consumer_data *consumer_data, int fd)
 					rcu_read_lock();
 					cds_lfht_for_each_entry(ksess->consumer->socks->ht,
 							&iter.iter, socket, node.node) {
-						/* Code flow error */
-						assert(socket->fd >= 0);
-
 						pthread_mutex_lock(socket->lock);
 						ret = kernel_consumer_send_channel_stream(socket,
 								channel, ksess,
@@ -729,6 +723,12 @@ error:
 static void update_ust_app(int app_sock)
 {
 	struct ltt_session *sess, *stmp;
+
+	/* Consumer is in an ERROR state. Stop any application update. */
+	if (uatomic_read(&ust_consumerd_state) == CONSUMER_ERROR) {
+		/* Stop the update process since the consumer is dead. */
+		return;
+	}
 
 	/* For all tracing session(s) */
 	cds_list_for_each_entry_safe(sess, stmp, &session_list_ptr->head, list) {
@@ -1019,15 +1019,16 @@ restart:
 		/* Connect both socket, command and metadata. */
 		consumer_data->cmd_sock =
 			lttcomm_connect_unix_sock(consumer_data->cmd_unix_sock_path);
-		consumer_data->metadata_sock.fd =
+		consumer_data->metadata_fd =
 			lttcomm_connect_unix_sock(consumer_data->cmd_unix_sock_path);
-		if (consumer_data->cmd_sock < 0 ||
-				consumer_data->metadata_sock.fd < 0) {
+		if (consumer_data->cmd_sock < 0
+				|| consumer_data->metadata_fd < 0) {
 			PERROR("consumer connect cmd socket");
 			/* On error, signal condition and quit. */
 			signal_consumer_condition(consumer_data, -1);
 			goto error;
 		}
+		consumer_data->metadata_sock.fd_ptr = &consumer_data->metadata_fd;
 		/* Create metadata socket lock. */
 		consumer_data->metadata_sock.lock = zmalloc(sizeof(pthread_mutex_t));
 		if (consumer_data->metadata_sock.lock == NULL) {
@@ -1040,7 +1041,7 @@ restart:
 		signal_consumer_condition(consumer_data, 1);
 		DBG("Consumer command socket ready (fd: %d", consumer_data->cmd_sock);
 		DBG("Consumer metadata socket ready (fd: %d)",
-				consumer_data->metadata_sock.fd);
+				consumer_data->metadata_fd);
 	} else {
 		ERR("consumer error when waiting for SOCK_READY : %s",
 				lttcomm_get_readable_code(-code));
@@ -1060,7 +1061,7 @@ restart:
 	}
 
 	/* Add metadata socket that is successfully connected. */
-	ret = lttng_poll_add(&events, consumer_data->metadata_sock.fd,
+	ret = lttng_poll_add(&events, consumer_data->metadata_fd,
 			LPOLLIN | LPOLLRDHUP);
 	if (ret < 0) {
 		goto error;
@@ -1119,7 +1120,7 @@ restart_poll:
 						lttcomm_get_readable_code(-code));
 
 				goto exit;
-			} else if (pollfd == consumer_data->metadata_sock.fd) {
+			} else if (pollfd == consumer_data->metadata_fd) {
 				/* UST metadata requests */
 				ret = ust_consumer_metadata_request(
 						&consumer_data->metadata_sock);
@@ -1138,6 +1139,13 @@ restart_poll:
 
 exit:
 error:
+	/*
+	 * We lock here because we are about to close the sockets and some other
+	 * thread might be using them so get exclusive access which will abort all
+	 * other consumer command by other threads.
+	 */
+	pthread_mutex_lock(&consumer_data->lock);
+
 	/* Immediately set the consumerd state to stopped */
 	if (consumer_data->type == LTTNG_CONSUMER_KERNEL) {
 		uatomic_set(&kernel_consumerd_state, CONSUMER_ERROR);
@@ -1163,15 +1171,12 @@ error:
 		}
 		consumer_data->cmd_sock = -1;
 	}
-	if (consumer_data->metadata_sock.fd >= 0) {
-		ret = close(consumer_data->metadata_sock.fd);
+	if (*consumer_data->metadata_sock.fd_ptr >= 0) {
+		ret = close(*consumer_data->metadata_sock.fd_ptr);
 		if (ret) {
 			PERROR("close");
 		}
 	}
-	/* Cleanup metadata socket mutex. */
-	pthread_mutex_destroy(consumer_data->metadata_sock.lock);
-	free(consumer_data->metadata_sock.lock);
 
 	if (sock >= 0) {
 		ret = close(sock);
@@ -1183,6 +1188,11 @@ error:
 	unlink(consumer_data->err_unix_sock_path);
 	unlink(consumer_data->cmd_unix_sock_path);
 	consumer_data->pid = 0;
+	pthread_mutex_unlock(&consumer_data->lock);
+
+	/* Cleanup metadata socket mutex. */
+	pthread_mutex_destroy(consumer_data->metadata_sock.lock);
+	free(consumer_data->metadata_sock.lock);
 
 	lttng_poll_clean(&events);
 error_poll:
@@ -2710,6 +2720,10 @@ static int process_client_msg(struct command_ctx *cmd_ctx, int sock,
 		break;
 	case LTTNG_DOMAIN_UST:
 	{
+		if (!ust_app_supported()) {
+			ret = LTTNG_ERR_NO_UST;
+			goto error;
+		}
 		/* Consumer is in an ERROR state. Report back to client */
 		if (uatomic_read(&ust_consumerd_state) == CONSUMER_ERROR) {
 			ret = LTTNG_ERR_NO_USTCONSUMERD;
@@ -4075,11 +4089,11 @@ static int set_permissions(char *rundir)
 	ret = allowed_group();
 	if (ret < 0) {
 		WARN("No tracing group detected");
-		ret = 0;
-		goto end;
+		/* Setting gid to 0 if no tracing group is found */
+		gid = 0;
+	} else {
+		gid = ret;
 	}
-
-	gid = ret;
 
 	/* Set lttng run dir */
 	ret = chown(rundir, 0, gid);
@@ -4088,7 +4102,7 @@ static int set_permissions(char *rundir)
 		PERROR("chown");
 	}
 
-	/* Ensure tracing group can search the run dir */
+	/* Ensure all applications and tracing group can search the run dir */
 	ret = chmod(rundir, S_IRWXU | S_IXGRP | S_IXOTH);
 	if (ret < 0) {
 		ERR("Unable to set permissions on %s", rundir);
@@ -4125,7 +4139,6 @@ static int set_permissions(char *rundir)
 
 	DBG("All permissions are set");
 
-end:
 	return ret;
 }
 
@@ -4639,6 +4652,14 @@ int main(int argc, char **argv)
 
 	/* Initialize communication library */
 	lttcomm_init();
+	/* This is to get the TCP timeout value. */
+	lttcomm_inet_init();
+
+	/*
+	 * Initialize the health check subsystem. This call should set the
+	 * appropriate time values.
+	 */
+	health_init();
 
 	/* Create thread to manage the client socket */
 	ret = pthread_create(&ht_cleanup_thread, NULL,

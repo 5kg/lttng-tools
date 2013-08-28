@@ -19,6 +19,8 @@
 #ifndef _DEFAULTS_H
 #define _DEFAULTS_H
 
+#include <config.h>
+
 /* Default unix group name for tracing. */
 #define DEFAULT_TRACING_GROUP                   "tracing"
 
@@ -79,7 +81,7 @@
 /* Default lttng run directory */
 #define DEFAULT_LTTNG_HOME_ENV_VAR              "LTTNG_HOME"
 #define DEFAULT_LTTNG_FALLBACK_HOME_ENV_VAR	"HOME"
-#define DEFAULT_LTTNG_RUNDIR                    "/var/run/lttng"
+#define DEFAULT_LTTNG_RUNDIR                    CONFIG_LTTNG_SYSTEM_RUNDIR
 #define DEFAULT_LTTNG_HOME_RUNDIR               "%s/.lttng"
 #define DEFAULT_LTTNG_SESSIOND_PIDFILE          "lttng-sessiond.pid"
 
@@ -195,6 +197,13 @@
  * the consumer receives metadata.
  */
 #define DEFAULT_METADATA_AVAILABILITY_WAIT_TIME 200000  /* usec */
+
+/*
+ * The usual value for the maximum TCP SYN retries time and TCP FIN timeout is
+ * 180 and 60 seconds on most Linux system and the default value since kernel
+ * 2.2 thus using the highest value. See tcp(7) for more details.
+ */
+#define DEFAULT_INET_TCP_TIMEOUT			180	/* sec */
 
 /*
  * Default receiving and sending timeout for an application socket.
