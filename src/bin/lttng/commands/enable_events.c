@@ -44,6 +44,7 @@ static char *opt_function_entry_symbol;
 static char *opt_channel_name;
 static char *opt_filter;
 static char *opt_exclude;
+static char opt_object_path[PATH_MAX];
 #if 0
 /* Not implemented yet */
 static char *opt_cmd_name;
@@ -291,8 +292,10 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 	/* TODO: support wildcard matching */
 	if ((pos = strrchr(opt, '@')) != NULL) {
 		len = min(pos - opt, PATH_MAX);
-		strncpy(ev->attr.probe.object_path, opt, len);
-		ev->attr.probe.object_path[len] = '\0';
+		strncpy(opt_object_path, opt, len);
+		opt_object_path[len] = '\0';
+		ev->with_object_path = 1;
+		ev->attr.probe.object_path = opt_object_path;
 		DBG("probe object %s", ev->attr.probe.object_path);
 		ret = parse_probe_opts(ev, pos+1);
 		goto end;

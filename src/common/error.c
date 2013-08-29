@@ -115,6 +115,9 @@ static const char *error_string_array[] = {
 	[ ERROR_INDEX(LTTNG_ERR_SNAPSHOT_FAIL) ] = "Snapshot record failed",
 	[ ERROR_INDEX(LTTNG_ERR_CHAN_EXIST) ] = "Channel already exists",
 
+	[ ERROR_INDEX(LTTNG_ERR_OBJECT_PATH_INVAL) ] = "Invalid object path",
+	[ ERROR_INDEX(LTTNG_ERR_OBJECT_PATH_NOMEM) ] = "Not enough memory for object path",
+
 	/* Last element */
 	[ ERROR_INDEX(LTTNG_ERR_NR) ] = "Unknown error code"
 };
