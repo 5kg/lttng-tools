@@ -63,3 +63,9 @@ if HAVE_DYNINST
 lttng_sessiond_LDADD += -ldyninstAPI
 endif
 endif
+
+if HAVE_DYNINST
+lttng_sessiond_LINK = $(CXXLINK)
+else
+lttng_sessiond_LINK = $(LINK)
+endif
