@@ -142,6 +142,8 @@ enum lttng_error_code {
 	LTTNG_ERR_NO_CONSUMER            = 109, /* No consumer exist for the session */
 	LTTNG_ERR_EXCLUSION_INVAL        = 110, /* Invalid event exclusion data */
 	LTTNG_ERR_EXCLUSION_NOMEM        = 111, /* Lack of memory while processing event exclusions */
+	LTTNG_ERR_OBJECT_PATH_INVAL      = 112, /* Invalid object path*/
+	LTTNG_ERR_OBJECT_PATH_NOMEM      = 113, /* Lack of memory for object path*/
 
 	/* MUST be last element */
 	LTTNG_ERR_NR,                           /* Last element */

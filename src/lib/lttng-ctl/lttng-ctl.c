@@ -750,19 +750,19 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 	lsm.u.enable.exclusion_count = exclusion_count;
 	lsm.u.enable.bytecode_len = 0;
 
-	if (exclusion_count == 0 && filter_expression == NULL) {
+	if (exclusion_count == 0 && filter_expression == NULL
+			&& !ev->with_object_path) {
 		ret = lttng_ctl_ask_sessiond(&lsm, NULL);
 		return ret;
 	}
 
 	/*
-	 * We have either a filter or some exclusions, so we need to set up
-	 * a variable-length memory block from where to send the data
+	 * We have either a filter, some exclusions or target path, so we need to
+	 * set up a variable-length memory block from where to send the data
 	 */
 
 	/* Parse filter expression */
 	if (filter_expression != NULL) {
-
 		/*
 		 * casting const to non-const, as the underlying function will
 		 * use it in read-only mode.
@@ -837,9 +837,10 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 	}
 
 	/* Allocate variable length data */
-	if (lsm.u.enable.exclusion_count != 0) {
+	if ((lsm.u.enable.exclusion_count != 0) || ev->with_object_path) {
 		varlen_data = zmalloc(lsm.u.enable.bytecode_len
-				+ LTTNG_SYMBOL_NAME_LEN * exclusion_count);
+				+ LTTNG_SYMBOL_NAME_LEN * exclusion_count
+				+ lsm.u.enable.object_path_len);
 		if (!varlen_data) {
 			ret = -LTTNG_ERR_EXCLUSION_NOMEM;
 			goto varlen_alloc_error;
@@ -856,6 +857,15 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 					&ctx->bytecode->b,
 					lsm.u.enable.bytecode_len);
 		}
+		/* Add target path last */
+		if (lsm.u.enable.object_path_len != 0) {
+			memcpy(varlen_data + LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count
+					+ lsm.u.enable.bytecode_len,
+					ev->attr.probe.object_path,
+					lsm.u.enable.object_path_len);
+		}
+		lsm.u.enable.object_path_len = strnlen(ev->attr.probe.object_path,
+					PATH_MAX);
 	} else {
 		/* no exclusions - use the already allocated filter bytecode */
 		varlen_data = (char *)(&ctx->bytecode->b);
@@ -863,7 +873,7 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 
 	ret = lttng_ctl_ask_sessiond_varlen(&lsm, varlen_data,
 			(LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count) +
-			lsm.u.enable.bytecode_len, NULL);
+			lsm.u.enable.bytecode_len + lsm.u.enable.object_path_len, NULL);
 
 	if (lsm.u.enable.exclusion_count != 0) {
 		free(varlen_data);
