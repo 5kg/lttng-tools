@@ -2876,6 +2876,43 @@ skip_domain:
 	}
 	case LTTNG_ENABLE_EVENT:
 	{
+		char *object_path;
+
+		if (cmd_ctx->lsm->u.enable.event.with_object_path) {
+			if (cmd_ctx->lsm->u.enable.object_path_len > PATH_MAX) {
+				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				goto error;
+			}
+			if (cmd_ctx->lsm->u.enable.object_path_len == 0) {
+				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				goto error;
+			}
+			object_path = zmalloc(cmd_ctx->lsm->u.enable.object_path_len);
+			if (!object_path) {
+				ret = LTTNG_ERR_OBJECT_PATH_NOMEM;
+				goto error;
+			}
+			/* Receive var. len. data */
+			DBG("Receiving var len data object_path from client ...");
+			ret = lttcomm_recv_unix_sock(sock, object_path,
+					cmd_ctx->lsm->u.enable.object_path_len);
+			if (ret <= 0) {
+				DBG("Nothing recv() from client var len data... continuing");
+				*sock_error = 1;
+				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				goto error;
+			}
+
+			if (strnlen(object_path, PATH_MAX)
+					!= cmd_ctx->lsm->u.enable.object_path_len) {
+				free(object_path);
+				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				goto error;
+			}
+
+			cmd_ctx->lsm->u.enable.event.attr.probe.object_path = object_path;
+		}
+
 		ret = cmd_enable_event(cmd_ctx->session, &cmd_ctx->lsm->domain,
 				cmd_ctx->lsm->u.enable.channel_name,
 				&cmd_ctx->lsm->u.enable.event, NULL, kernel_poll_pipe[1]);
