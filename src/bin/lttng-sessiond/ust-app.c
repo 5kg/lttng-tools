@@ -287,6 +287,15 @@ void delete_ust_app_event(int sock, struct ust_app_event *ua_event)
 
 	assert(ua_event);
 
+	switch (ua_event->attr.instrumentation) {
+	case LTTNG_UST_PROBE:
+	case LTTNG_UST_FUNCTION:
+		free(ua_event->attr.u.probe.object_path);
+		break;
+	default:
+		break;
+	}
+
 	free(ua_event->filter);
 	if (ua_event->exclusion != NULL)
 		free(ua_event->exclusion);
@@ -969,6 +978,31 @@ error:
 }
 
 /*
+ * Allocate a object path string and copy the given original object path.
+ *
+ * Return allocated object_path or NULL on error.
+ */
+static char *alloc_copy_ust_app_object_path(char* orig_p)
+{
+	size_t len;
+	char *path = NULL;
+
+	len = strnlen(orig_p, PATH_MAX);
+
+	/* Copy filter bytecode */
+	path = zmalloc(len);
+	if (!path) {
+		PERROR("zmalloc alloc ust app object_path");
+		goto error;
+	}
+
+	memcpy(path, orig_p, len);
+
+error:
+	return path;
+}
+
+/*
  * Allocate a filter and copy the given original filter.
  *
  * Return allocated filter or NULL on error.
@@ -1489,6 +1523,18 @@ static void shadow_copy_event(struct ust_app_event *ua_event,
 
 	/* Copy event attributes */
 	memcpy(&ua_event->attr, &uevent->attr, sizeof(ua_event->attr));
+
+	/* Copy object path */
+	switch (uevent->attr.instrumentation) {
+	case LTTNG_UST_PROBE:
+	case LTTNG_UST_FUNCTION:
+		ua_event->attr.u.probe.object_path =
+			alloc_copy_ust_app_object_path(uevent->attr.u.probe.object_path);
+		/* Object_path might be NULL here in case of ENONEM. */
+		break;
+	default:
+		break;
+	}
 
 	/* Copy filter bytecode */
 	if (uevent->filter) {
