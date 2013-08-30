@@ -329,9 +329,7 @@ struct ltt_ust_event *trace_ust_create_event(struct lttng_event *ev,
 		strncpy(lue->attr.u.probe.symbol_name,
 				ev->attr.probe.symbol_name, LTTNG_UST_SYM_NAME_LEN);
 		lue->attr.u.probe.symbol_name[LTTNG_UST_SYM_NAME_LEN - 1] = '\0';
-		strncpy(lue->attr.u.probe.object_path,
-				ev->attr.probe.object_path, PATH_MAX);
-		lue->attr.u.probe.object_path[PATH_MAX - 1] = '\0';
+		lue->attr.u.probe.object_path = ev->attr.probe.object_path;
 		break;
 	case LTTNG_EVENT_FUNCTION:
 		lue->attr.instrumentation = LTTNG_UST_FUNCTION;
@@ -340,9 +338,7 @@ struct ltt_ust_event *trace_ust_create_event(struct lttng_event *ev,
 		strncpy(lue->attr.u.probe.symbol_name,
 				ev->attr.probe.symbol_name, LTTNG_UST_SYM_NAME_LEN);
 		lue->attr.u.probe.symbol_name[LTTNG_UST_SYM_NAME_LEN - 1] = '\0';
-		strncpy(lue->attr.u.probe.object_path,
-				ev->attr.probe.object_path, PATH_MAX);
-		lue->attr.u.probe.object_path[PATH_MAX - 1] = '\0';
+		lue->attr.u.probe.object_path = ev->attr.probe.object_path;
 		break;
 	case LTTNG_EVENT_TRACEPOINT:
 		lue->attr.instrumentation = LTTNG_UST_TRACEPOINT;
@@ -527,6 +523,16 @@ void trace_ust_destroy_event(struct ltt_ust_event *event)
 	assert(event);
 
 	DBG2("Trace destroy UST event %s", event->attr.name);
+
+	switch (event->attr.instrumentation) {
+	case LTTNG_UST_PROBE:
+	case LTTNG_UST_FUNCTION:
+		free(event->attr.u.probe.object_path);
+		break;
+	default:
+		break;
+	}
+
 	free(event->filter);
 	free(event);
 }
