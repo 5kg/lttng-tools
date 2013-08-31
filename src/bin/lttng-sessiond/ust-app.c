@@ -287,15 +287,7 @@ void delete_ust_app_event(int sock, struct ust_app_event *ua_event)
 
 	assert(ua_event);
 
-	switch (ua_event->attr.instrumentation) {
-	case LTTNG_UST_PROBE:
-	case LTTNG_UST_FUNCTION:
-		free(ua_event->attr.u.probe.object_path);
-		break;
-	default:
-		break;
-	}
-
+	free(ua_event->attr.object_path);
 	free(ua_event->filter);
 	if (ua_event->exclusion != NULL)
 		free(ua_event->exclusion);
@@ -1505,15 +1497,10 @@ static void shadow_copy_event(struct ust_app_event *ua_event,
 	memcpy(&ua_event->attr, &uevent->attr, sizeof(ua_event->attr));
 
 	/* Copy object path */
-	switch (uevent->attr.instrumentation) {
-	case LTTNG_UST_PROBE:
-	case LTTNG_UST_FUNCTION:
-		ua_event->attr.u.probe.object_path =
-			alloc_copy_ust_app_object_path(uevent->attr.u.probe.object_path);
+	if (uevent->attr.object_path) {
+		ua_event->attr.object_path =
+			alloc_copy_ust_app_object_path(uevent->attr.object_path);
 		/* Object_path might be NULL here in case of ENONEM. */
-		break;
-	default:
-		break;
 	}
 
 	/* Copy filter bytecode */

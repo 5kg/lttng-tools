@@ -3002,7 +3002,7 @@ skip_domain:
 			}
 		}
 
-		if (cmd_ctx->lsm->u.enable.event.with_object_path) {
+		if (cmd_ctx->lsm->u.enable.event.object_path) {
 			if (cmd_ctx->lsm->u.enable.object_path_len > PATH_MAX) {
 				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
 				goto error;
@@ -3034,6 +3034,7 @@ skip_domain:
 				goto error;
 			}
 			cmd_ctx->lsm->u.enable.event.attr.probe.object_path = object_path;
+		}
 
 		ret = cmd_enable_event(cmd_ctx->session, &cmd_ctx->lsm->domain,
 				cmd_ctx->lsm->u.enable.channel_name,

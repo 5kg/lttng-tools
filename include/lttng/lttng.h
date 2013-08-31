@@ -200,14 +200,12 @@ struct lttng_event_context {
  *
  * The structures should be initialized to zero before use.
  */
-#define LTTNG_EVENT_PROBE_PADDING1         (16 - sizeof(char *))
+#define LTTNG_EVENT_PROBE_PADDING1         16
 struct lttng_event_probe_attr {
 	uint64_t addr;
 
 	uint64_t offset;
 	char symbol_name[LTTNG_SYMBOL_NAME_LEN];
-
-	char *object_path;
 
 	char padding[LTTNG_EVENT_PROBE_PADDING1];
 };
@@ -229,7 +227,7 @@ struct lttng_event_function_attr {
  *
  * The structures should be initialized to zero before use.
  */
-#define LTTNG_EVENT_PADDING1               14
+#define LTTNG_EVENT_PADDING1               (15 - sizeof(char *))
 #define LTTNG_EVENT_PADDING2               LTTNG_SYMBOL_NAME_LEN + 32
 struct lttng_event {
 	enum lttng_event_type type;
@@ -243,6 +241,7 @@ struct lttng_event {
 	unsigned char filter;	/* filter enabled ? */
 	unsigned char exclusion; /* exclusions added ? */
 	unsigned char with_object_path;	/* object_path used ? */
+	char *object_path; /* No object path: NULL */
 
 	char padding[LTTNG_EVENT_PADDING1];
 
