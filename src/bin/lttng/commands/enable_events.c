@@ -282,9 +282,8 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 		len = min(pos - opt, PATH_MAX);
 		strncpy(opt_object_path, opt, len);
 		opt_object_path[len] = '\0';
-		ev->with_object_path = 1;
-		ev->attr.probe.object_path = opt_object_path;
-		DBG("probe object %s", ev->attr.probe.object_path);
+		ev->object_path = opt_object_path;
+		DBG("probe object %s", ev->object_path);
 		ret = parse_probe_opts(ev, pos+1);
 		goto end;
 	}

@@ -240,8 +240,8 @@ static void print_events(struct lttng_event *event)
 			MSG("%soffset: 0x%" PRIx64, indent8, event->attr.probe.offset);
 			MSG("%ssymbol: %s", indent8, event->attr.probe.symbol_name);
 		}
-		if (event->attr.probe.object_path[0]) {
-			MSG("%sobject_path: %s", indent8, event->attr.probe.object_path);
+		if (event->object_path) {
+			MSG("%sobject_path: %s", indent8, event->object_path);
 		}
 		break;
 	case LTTNG_EVENT_PROBE:
@@ -254,8 +254,8 @@ static void print_events(struct lttng_event *event)
 			MSG("%soffset: 0x%" PRIx64, indent8, event->attr.probe.offset);
 			MSG("%ssymbol: %s", indent8, event->attr.probe.symbol_name);
 		}
-		if (event->attr.probe.object_path[0]) {
-			MSG("%sobject_path: %s", indent8, event->attr.probe.object_path);
+		if (event->object_path) {
+			MSG("%sobject_path: %s", indent8, event->object_path);
 		}
 		break;
 	case LTTNG_EVENT_FUNCTION_ENTRY:

@@ -109,11 +109,9 @@ struct lttng_ust_probe {
 
 	uint64_t offset;
 	char symbol_name[LTTNG_UST_SYM_NAME_LEN];
-
-	char object_path[PATH_MAX];
 } LTTNG_PACKED;
 
-#define LTTNG_UST_EVENT_PADDING1	16
+#define LTTNG_UST_EVENT_PADDING1	(16 - sizeof(char *))
 #define LTTNG_UST_EVENT_PADDING2	(LTTNG_UST_SYM_NAME_LEN + PATH_MAX + 32)
 struct lttng_ust_event {
 	enum lttng_ust_instrumentation instrumentation;
@@ -121,6 +119,7 @@ struct lttng_ust_event {
 
 	enum lttng_ust_loglevel_type loglevel_type;
 	int loglevel;	/* value, -1: all */
+	char *object_path;	/* No object path: NULL */
 	char padding[LTTNG_UST_EVENT_PADDING1];
 
 	/* Per instrumentation type configuration */
