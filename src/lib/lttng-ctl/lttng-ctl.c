@@ -861,10 +861,10 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 		if (lsm.u.enable.object_path_len != 0) {
 			memcpy(varlen_data + LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count
 					+ lsm.u.enable.bytecode_len,
-					ev->attr.probe.object_path,
+					ev->object_path,
 					lsm.u.enable.object_path_len);
 		}
-		lsm.u.enable.object_path_len = strnlen(ev->attr.probe.object_path,
+		lsm.u.enable.object_path_len = strnlen(ev->object_path,
 					PATH_MAX);
 	} else {
 		/* no exclusions - use the already allocated filter bytecode */
