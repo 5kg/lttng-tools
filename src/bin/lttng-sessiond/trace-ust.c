@@ -330,7 +330,7 @@ struct ltt_ust_event *trace_ust_create_event(struct lttng_event *ev,
 				ev->attr.probe.symbol_name, LTTNG_UST_SYM_NAME_LEN);
 		lue->attr.u.probe.symbol_name[LTTNG_UST_SYM_NAME_LEN - 1] = '\0';
 		/* Same layout. */
-		lue->attr.target = (struct lttng_ust_target*) ev->target;
+		lue->attr.target = (struct lttng_ust_target *) ev->target;
 		break;
 	case LTTNG_EVENT_FUNCTION:
 		lue->attr.instrumentation = LTTNG_UST_FUNCTION;
@@ -340,7 +340,7 @@ struct ltt_ust_event *trace_ust_create_event(struct lttng_event *ev,
 				ev->attr.probe.symbol_name, LTTNG_UST_SYM_NAME_LEN);
 		lue->attr.u.probe.symbol_name[LTTNG_UST_SYM_NAME_LEN - 1] = '\0';
 		/* Same layout. */
-		lue->attr.target = (struct lttng_ust_target*) ev->target;
+		lue->attr.target = (struct lttng_ust_target *) ev->target;
 		break;
 	case LTTNG_EVENT_TRACEPOINT:
 		lue->attr.instrumentation = LTTNG_UST_TRACEPOINT;

@@ -226,6 +226,8 @@ struct lttcomm_session_msg {
 			struct lttng_event event;
 			/* Length of following bytecode for filter. */
 			uint32_t bytecode_len;
+			/* Length of following instrument target path. */
+			uint32_t target_path_len;
 		} LTTNG_PACKED enable;
 		/* Create channel */
 		struct {

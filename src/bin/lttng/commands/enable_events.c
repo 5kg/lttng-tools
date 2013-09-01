@@ -266,8 +266,8 @@ end:
  */
 static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 {
-	int ret, path_len;
 	char *pos;
+	int ret;
 
 	if (opt == NULL) {
 		ret = -1;
@@ -279,6 +279,7 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 	if ((pos = strrchr(opt, '@')) != NULL) {
 		struct lttng_event_target_attr *target;
 		char fullpath[PATH_MAX];
+		int path_len;
 
 		/* Process relative path */
 		if (opt[0] != '/') {

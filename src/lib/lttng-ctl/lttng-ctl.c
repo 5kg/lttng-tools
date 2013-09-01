@@ -700,8 +700,9 @@ int lttng_enable_event(struct lttng_handle *handle,
 			sizeof(lsm.session.name));
 
 	if (ev->target) {
-		return lttng_ctl_ask_sessiond_varlen(&lsm, ev->target->path,
-					ev->target->path_len, NULL);
+		lsm.u.enable.target_path_len = ev->target->path_len;
+		return lttng_ctl_ask_sessiond_varlen(&lsm, ev->target,
+					lsm.u.enable.target_path_len, NULL);
 	}
 
 	return lttng_ctl_ask_sessiond(&lsm, NULL);
