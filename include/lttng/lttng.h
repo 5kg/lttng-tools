@@ -249,11 +249,27 @@ struct lttng_event_function_attr {
 };
 
 /*
+ * Instrument target
+ *
+ * The structures should be initialized to zero before use.
+ */
+#define LTTNG_EVENT_TARGET_PADDING1        32
+struct lttng_event_target_attr {
+	int path_len;
+
+	char padding[LTTNG_EVENT_TARGET_PADDING1];
+
+	/* This varlen field should always be last element */
+	char path[0];
+};
+
+/*
  * Generic lttng event
  *
  * The structures should be initialized to zero before use.
  */
-#define LTTNG_EVENT_PADDING1               (15 - sizeof(char *))
+#define LTTNG_EVENT_PADDING1               \
+	(15 - sizeof(struct lttng_event_target_attr *))
 #define LTTNG_EVENT_PADDING2               LTTNG_SYMBOL_NAME_LEN + 32
 struct lttng_event {
 	enum lttng_event_type type;
@@ -266,8 +282,9 @@ struct lttng_event {
 	pid_t pid;
 	unsigned char filter;	/* filter enabled ? */
 	unsigned char exclusion; /* exclusions added ? */
+
 	unsigned char with_object_path;	/* object_path used ? */
-	char *object_path; /* No object path: NULL */
+	struct lttng_event_target_attr *target; /* No object path: NULL */
 
 	char padding[LTTNG_EVENT_PADDING1];
 
