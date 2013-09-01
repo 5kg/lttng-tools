@@ -278,7 +278,7 @@ end:
  */
 static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 {
-	int ret, len;
+	int ret, path_len;
 	char *pos;
 
 	if (opt == NULL) {
@@ -287,24 +287,35 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 	}
 
 	/* Check for pathname */
-	/* TODO: support relative path */
 	/* TODO: support wildcard matching */
 	if ((pos = strrchr(opt, '@')) != NULL) {
 		struct lttng_event_target_attr *target;
-		len = min(pos - opt, PATH_MAX);
+		char fullpath[PATH_MAX];
 
+		/* Process relative path */
+		if (opt[0] != '/') {
+			if (getcwd(fullpath, PATH_MAX) == NULL) {
+				goto error;
+			}
+			strncat(fullpath, opt, pos - opt);
+		} else {
+			strncpy(fullpath, opt, pos - opt);
+		}
+
+		path_len = min(strnlen(fullpath, PATH_MAX), PATH_MAX);
 		/* Include the tailing '\0' */
-		target = zmalloc(sizeof(struct lttng_event_target_attr) + len + 1);
-		target->path_len = len + 1;
+		target = zmalloc(sizeof(struct lttng_event_target_attr) + path_len + 1);
+		target->path_len = path_len + 1;
 
-		strncpy(target->path, opt, len);
-		target->path[len] = '\0';
+		strncpy(target->path, fullpath, path_len);
+		target->path[path_len] = '\0';
 		ev->target = target;
 		DBG("probe object %s", ev->target->path);
 		ret = parse_probe_opts(ev, pos+1);
 		goto end;
 	}
 
+error:
 	/* No match */
 	ret = -1;
 
