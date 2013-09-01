@@ -2878,23 +2878,14 @@ skip_domain:
 	{
 		/* TODO: Handle dynamic instrumentation with filter */
 		struct lttng_event_target_attr *target;
-		int len;
 
 		if (cmd_ctx->lsm->u.enable.event.target) {
-			if (cmd_ctx->lsm->u.enable.target_path_len > PATH_MAX) {
+			if (cmd_ctx->lsm->u.enable.target_len == 0) {
 				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
 			}
 
-			if (cmd_ctx->lsm->u.enable.target_path_len == 0) {
-				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
-				goto error;
-			}
-
-			len = cmd_ctx->lsm->u.enable.target_path_len
-				+ sizeof(struct lttng_event_target_attr);
-
-			target = zmalloc(len);
+			target = zmalloc(cmd_ctx->lsm->u.enable.target_len);
 			if (!target) {
 				ret = LTTNG_ERR_OBJECT_TARGET_NOMEM;
 				goto error;
@@ -2902,16 +2893,11 @@ skip_domain:
 
 			/* Receive var. len. data */
 			DBG("Receiving var len data object_path from client ...");
-			ret = lttcomm_recv_unix_sock(sock, target, len);
+			ret = lttcomm_recv_unix_sock(sock, target,
+					cmd_ctx->lsm->u.enable.target_len);
 			if (ret <= 0) {
 				DBG("Nothing recv() from client var len data... continuing");
 				*sock_error = 1;
-				free(target);
-				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
-				goto error;
-			}
-
-			if (target->path_len != cmd_ctx->lsm->u.enable.target_path_len) {
 				free(target);
 				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
