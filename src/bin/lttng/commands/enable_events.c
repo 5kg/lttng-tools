@@ -298,6 +298,7 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 			if (getcwd(fullpath, PATH_MAX) == NULL) {
 				goto error;
 			}
+			strncat(fullpath, "/", 1);
 			strncat(fullpath, opt, pos - opt);
 		} else {
 			strncpy(fullpath, opt, pos - opt);
