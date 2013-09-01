@@ -2881,18 +2881,18 @@ skip_domain:
 
 		if (cmd_ctx->lsm->u.enable.event.target) {
 			if (cmd_ctx->lsm->u.enable.event.target->path_len > PATH_MAX) {
-				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
 			}
 			if (cmd_ctx->lsm->u.enable.event.target->path_len == 0) {
-				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
 			}
 			len = sizeof(struct lttng_ust_target)
 				+ cmd_ctx->lsm->u.enable.event.target->path_len;
 			target = zmalloc(len);
 			if (!target) {
-				ret = LTTNG_ERR_OBJECT_PATH_NOMEM;
+				ret = LTTNG_ERR_OBJECT_TARGET_NOMEM;
 				goto error;
 			}
 			/* Receive var. len. data */
@@ -2901,14 +2901,14 @@ skip_domain:
 			if (ret <= 0) {
 				DBG("Nothing recv() from client var len data... continuing");
 				*sock_error = 1;
-				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
 			}
 
 			if (target->path_len
 					!= cmd_ctx->lsm->u.enable.event.target->path_len) {
 				free(target);
-				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
+				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
 			}
 
