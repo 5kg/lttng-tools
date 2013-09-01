@@ -830,7 +830,7 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 	}
 
 	/* Allocate variable length data */
-	if ((lsm.u.enable.exclusion_count != 0) || ev->with_object_path) {
+	if ((lsm.u.enable.exclusion_count != 0) || ev->target) {
 		varlen_data = zmalloc(lsm.u.enable.bytecode_len
 				+ LTTNG_SYMBOL_NAME_LEN * exclusion_count
 				+ lsm.u.enable.object_path_len);
@@ -851,14 +851,13 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 					lsm.u.enable.bytecode_len);
 		}
 		/* Add target path last */
-		if (lsm.u.enable.object_path_len != 0) {
+		if (ev->target && ev->target->path_len) {
 			memcpy(varlen_data + LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count
 					+ lsm.u.enable.bytecode_len,
-					ev->object_path,
-					lsm.u.enable.object_path_len);
+					ev->target->path,
+					ev->target->path_len);
+			lsm.u.enable.object_path_len = ev->target->path_len;
 		}
-		lsm.u.enable.object_path_len = strnlen(ev->object_path,
-					PATH_MAX);
 	} else {
 		/* no exclusions - use the already allocated filter bytecode */
 		varlen_data = (char *)(&ctx->bytecode->b);
