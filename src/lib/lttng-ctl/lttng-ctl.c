@@ -863,7 +863,7 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 					+ lsm.u.enable.bytecode_len,
 					ev->target->path,
 					ev->target->path_len);
-			lsm.u.enable.object_path_len = ev->target->path_len;
+			lsm.u.enable.target_path_len = ev->target->path_len;
 		}
 	} else {
 		/* no exclusions - use the already allocated filter bytecode */
