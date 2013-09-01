@@ -222,7 +222,6 @@ struct lttng_event_context {
  * Event probe.
  *
  * Either addr is used or symbol_name and offset.
- * For dynamic instrumented UST probes, object_path is also used.
  *
  * The structures should be initialized to zero before use.
  */
@@ -282,8 +281,6 @@ struct lttng_event {
 	pid_t pid;
 	unsigned char filter;	/* filter enabled ? */
 	unsigned char exclusion; /* exclusions added ? */
-
-	unsigned char with_object_path;	/* object_path used ? */
 	struct lttng_event_target_attr *target; /* No object path: NULL */
 
 	char padding[LTTNG_EVENT_PADDING1];

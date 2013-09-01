@@ -286,11 +286,13 @@ static int list_lttng_ust_global_events(char *channel_name,
 			tmp[i].type = LTTNG_EVENT_PROBE;
 			memcpy(&tmp[i].attr.probe, &uevent->attr.u.probe,
 					sizeof(struct lttng_ust_probe));
+			/* TODO: List instrument target information */
 			break;
 		case LTTNG_UST_FUNCTION:
 			memcpy(&tmp[i].attr.probe, &uevent->attr.u.probe,
 					sizeof(struct lttng_ust_probe));
 			tmp[i].type = LTTNG_EVENT_FUNCTION;
+			/* TODO: List instrument target information */
 			break;
 		}
 
