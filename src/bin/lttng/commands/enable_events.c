@@ -1007,6 +1007,10 @@ error:
 		free(exclusion_list);
 	}
 
+	if (ev.target) {
+		free(ev.target);
+	}
+
 	return ret;
 }
 
