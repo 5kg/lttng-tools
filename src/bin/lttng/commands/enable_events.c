@@ -701,6 +701,10 @@ error:
 	}
 	lttng_destroy_handle(handle);
 
+	if (ev.target) {
+		free(ev.target);
+	}
+
 	return ret;
 }
 
