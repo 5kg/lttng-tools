@@ -744,7 +744,7 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 	lsm.u.enable.bytecode_len = 0;
 
 	if (exclusion_count == 0 && filter_expression == NULL
-			&& !ev->with_object_path) {
+			&& ev->target == NULL) {
 		ret = lttng_ctl_ask_sessiond(&lsm, NULL);
 		return ret;
 	}
