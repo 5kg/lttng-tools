@@ -234,14 +234,14 @@ struct lttcomm_session_msg {
 			uint32_t bytecode_len;
 			/* exclusion data */
 			uint32_t exclusion_count;
-			/* Length of following object path for user-space probe. */
-			uint32_t object_path_len;
+			/* Length of following target object path for user-space probe. */
+			uint32_t target_path_len;
 			/*
 			 * After this structure, the following variable-length
 			 * items are transmitted:
 			 * - char exclusion_names[LTTNG_SYMBOL_NAME_LEN][exclusion_count]
 			 * - unsigned char filter_bytecode[bytecode_len]
-			 * - char object_path[PATH_MAX]
+			 * - char target_path[PATH_MAX]
 			 */
 		} LTTNG_PACKED enable;
 		/* Create channel */
