@@ -235,7 +235,7 @@ struct lttcomm_session_msg {
 			/* exclusion data */
 			uint32_t exclusion_count;
 			/* Length of following target object path for user-space probe. */
-			uint32_t target_path_len;
+			uint32_t target_len;
 			/*
 			 * After this structure, the following variable-length
 			 * items are transmitted:
