@@ -2876,26 +2876,28 @@ skip_domain:
 	}
 	case LTTNG_ENABLE_EVENT:
 	{
-		char *object_path;
+		struct lttng_event_target_attr *target;
+		int len;
 
-		if (cmd_ctx->lsm->u.enable.event.object_path) {
-			if (cmd_ctx->lsm->u.enable.object_path_len > PATH_MAX) {
+		if (cmd_ctx->lsm->u.enable.event.target) {
+			if (cmd_ctx->lsm->u.enable.event.target->path_len > PATH_MAX) {
 				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
 				goto error;
 			}
-			if (cmd_ctx->lsm->u.enable.object_path_len == 0) {
+			if (cmd_ctx->lsm->u.enable.event.target->path_len == 0) {
 				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
 				goto error;
 			}
-			object_path = zmalloc(cmd_ctx->lsm->u.enable.object_path_len);
-			if (!object_path) {
+			len = sizeof(struct lttng_ust_target)
+				+ cmd_ctx->lsm->u.enable.event.target->path_len;
+			target = zmalloc(len);
+			if (!target) {
 				ret = LTTNG_ERR_OBJECT_PATH_NOMEM;
 				goto error;
 			}
 			/* Receive var. len. data */
 			DBG("Receiving var len data object_path from client ...");
-			ret = lttcomm_recv_unix_sock(sock, object_path,
-					cmd_ctx->lsm->u.enable.object_path_len);
+			ret = lttcomm_recv_unix_sock(sock, target, len);
 			if (ret <= 0) {
 				DBG("Nothing recv() from client var len data... continuing");
 				*sock_error = 1;
@@ -2903,14 +2905,14 @@ skip_domain:
 				goto error;
 			}
 
-			if (strnlen(object_path, PATH_MAX)
-					!= cmd_ctx->lsm->u.enable.object_path_len) {
-				free(object_path);
+			if (target->path_len
+					!= cmd_ctx->lsm->u.enable.event.target->path_len) {
+				free(target);
 				ret = LTTNG_ERR_OBJECT_PATH_INVAL;
 				goto error;
 			}
 
-			cmd_ctx->lsm->u.enable.event.object_path = object_path;
+			cmd_ctx->lsm->u.enable.event.target = target;
 		}
 
 		ret = cmd_enable_event(cmd_ctx->session, &cmd_ctx->lsm->domain,

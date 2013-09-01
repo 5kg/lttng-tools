@@ -271,7 +271,7 @@ void delete_ust_app_event(int sock, struct ust_app_event *ua_event)
 
 	assert(ua_event);
 
-	free(ua_event->attr.object_path);
+	free(ua_event->attr.target);
 	free(ua_event->filter);
 
 	if (ua_event->obj != NULL) {
@@ -929,28 +929,26 @@ error:
 }
 
 /*
- * Allocate a object path string and copy the given original object path.
+ * Allocate a target struct and copy the given original one.
  *
- * Return allocated object_path or NULL on error.
+ * Return allocated target struct or NULL on error.
  */
-static char *alloc_copy_ust_app_object_path(char* orig_p)
+static struct lttng_ust_target *alloc_copy_ust_app_target(
+		struct lttng_ust_target *orig_t)
 {
-	size_t len;
-	char *path = NULL;
-
-	len = strnlen(orig_p, PATH_MAX);
+	struct lttng_ust_target *target = NULL;
 
 	/* Copy filter bytecode */
-	path = zmalloc(len);
-	if (!path) {
-		PERROR("zmalloc alloc ust app object_path");
+	target = zmalloc(sizeof(*target) + orig_t->path_len);
+	if (!target) {
+		PERROR("zmalloc alloc ust app target struct");
 		goto error;
 	}
 
-	memcpy(path, orig_p, len);
+	memcpy(target, orig_t, sizeof(*target) + orig_t->path_len);
 
 error:
-	return path;
+	return target;
 }
 
 /*
@@ -1381,10 +1379,10 @@ static void shadow_copy_event(struct ust_app_event *ua_event,
 	memcpy(&ua_event->attr, &uevent->attr, sizeof(ua_event->attr));
 
 	/* Copy object path */
-	if (uevent->attr.object_path) {
-		ua_event->attr.object_path =
-			alloc_copy_ust_app_object_path(uevent->attr.object_path);
-		/* Object_path might be NULL here in case of ENONEM. */
+	if (uevent->attr.target) {
+		ua_event->attr.target =
+			alloc_copy_ust_app_target(uevent->attr.target);
+		/* Target might be NULL here in case of ENONEM. */
 	}
 
 	/* Copy filter bytecode */

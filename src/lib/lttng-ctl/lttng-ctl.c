@@ -699,9 +699,9 @@ int lttng_enable_event(struct lttng_handle *handle,
 	lttng_ctl_copy_string(lsm.session.name, handle->session_name,
 			sizeof(lsm.session.name));
 
-	if (ev->object_path) {
-		lsm.u.enable.object_path_len = strnlen(ev->object_path, PATH_MAX);
-		return lttng_ctl_ask_sessiond_varlen(&lsm, ev->object_path,
+	if (ev->target && ev->target->path_len) {
+		lsm.u.enable.object_path_len = ev->target->path_len;
+		return lttng_ctl_ask_sessiond_varlen(&lsm, ev->target->path,
 					lsm.u.enable.object_path_len, NULL);
 	}
 
