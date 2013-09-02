@@ -1141,6 +1141,41 @@ error:
 }
 
 /*
+ * Set the target on the tracer.
+ */
+static
+int set_ust_event_target(struct ust_app_event *ua_event,
+		struct ust_app *app)
+{
+	int ret;
+
+	health_code_update();
+
+	if (!ua_event->attr.target) {
+		ret = 0;
+		goto error;
+	}
+
+	ret = ustctl_set_target(app->sock, ua_event->attr.target,
+			ua_event->obj);
+	if (ret < 0) {
+		if (ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
+			ERR("UST app event %s target failed for app (pid: %d) "
+					"with ret %d", ua_event->attr.name, app->pid, ret);
+		} else {
+			DBG3("UST app target event failed. Application is dead.");
+		}
+		goto error;
+	}
+
+	DBG2("UST target set successfully for event %s", ua_event->name);
+
+error:
+	health_code_update();
+	return ret;
+}
+
+/*
  * Set the filter on the tracer.
  */
 static
@@ -1452,6 +1487,14 @@ int create_ust_event(struct ust_app *app, struct ust_app_session *ua_sess,
 			ua_event->attr.name, app->pid);
 
 	health_code_update();
+
+	/* Set target if one is present. */
+	if (ua_event->attr.target) {
+		ret = set_ust_event_target(ua_event, app);
+		if (ret < 0) {
+			goto error;
+		}
+	}
 
 	/* Set filter if one is present. */
 	if (ua_event->filter) {
