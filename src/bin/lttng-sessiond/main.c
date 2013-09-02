@@ -3004,7 +3004,8 @@ skip_domain:
 		}
 
 		if (cmd_ctx->lsm->u.enable.event.target) {
-			if (cmd_ctx->lsm->u.enable.target_len == 0) {
+			if (cmd_ctx->lsm->u.enable.target_len
+					< sizeof(struct lttng_event_target_attr)) {
 				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
 			}
@@ -3016,12 +3017,19 @@ skip_domain:
 			}
 
 			/* Receive var. len. data */
-			DBG("Receiving var len data object_path from client ...");
+			DBG("Receiving var len data target from client ...");
 			ret = lttcomm_recv_unix_sock(sock, target,
 					cmd_ctx->lsm->u.enable.target_len);
 			if (ret <= 0) {
 				DBG("Nothing recv() from client var len data... continuing");
 				*sock_error = 1;
+				free(target);
+				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
+				goto error;
+			}
+
+			if ((sizeof(struct lttng_event_target_attr) + target->path_len)
+						!= cmd_ctx->lsm->u.enable.target_len) {
 				free(target);
 				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
 				goto error;
