@@ -2882,13 +2882,13 @@ skip_domain:
 		if (cmd_ctx->lsm->u.enable.event.target) {
 			if (cmd_ctx->lsm->u.enable.target_len
 					< sizeof(struct lttng_event_target_attr)) {
-				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
+				ret = LTTNG_ERR_TARGET_INVAL;
 				goto error;
 			}
 
 			target = zmalloc(cmd_ctx->lsm->u.enable.target_len);
 			if (!target) {
-				ret = LTTNG_ERR_OBJECT_TARGET_NOMEM;
+				ret = LTTNG_ERR_TARGET_NOMEM;
 				goto error;
 			}
 
@@ -2900,14 +2900,14 @@ skip_domain:
 				DBG("Nothing recv() from client var len data... continuing");
 				*sock_error = 1;
 				free(target);
-				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
+				ret = LTTNG_ERR_TARGET_INVAL;
 				goto error;
 			}
 
 			if ((sizeof(struct lttng_event_target_attr) + target->path_len)
 						!= cmd_ctx->lsm->u.enable.target_len) {
 				free(target);
-				ret = LTTNG_ERR_OBJECT_TARGET_INVAL;
+				ret = LTTNG_ERR_TARGET_INVAL;
 				goto error;
 			}
 
