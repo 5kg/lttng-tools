@@ -118,7 +118,7 @@ struct lttng_ust_probe {
  */
 #define LTTNG_UST_TARGET_PADDING	32
 struct lttng_ust_target {
-	int path_len;
+	uint32_t path_len;
 
 	char padding[LTTNG_UST_TARGET_PADDING];
 
@@ -309,6 +309,7 @@ struct lttng_ust_event_exclusion {
 
 /* Event FD commands */
 #define LTTNG_UST_FILTER			_UST_CMD(0xA0)
+#define LTTNG_UST_TARGET			_UST_CMD(0xA1)
 
 #define LTTNG_UST_ROOT_HANDLE	0
 
