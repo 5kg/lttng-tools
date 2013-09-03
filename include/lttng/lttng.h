@@ -226,13 +226,13 @@ struct lttng_event_function_attr {
  *
  * The structures should be initialized to zero before use.
  */
-#define LTTNG_EVENT_TARGET_PADDING1        32
+#define LTTNG_EVENT_TARGET_PADDING        32
 struct lttng_event_target_attr {
 	int path_len;
 
-	char padding[LTTNG_EVENT_TARGET_PADDING1];
+	char padding[LTTNG_EVENT_TARGET_PADDING];
 
-	/* This varlen field should always be last element */
+	/* This varlen field should always be the last element */
 	char path[0];
 };
 

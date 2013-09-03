@@ -829,11 +829,16 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 				+ bytecode_get_len(&ctx->bytecode->b);
 	}
 
+	if (ev->target != NULL) {
+		lsm.u.enable.target_len = ev->target->path_len
+			+ sizeof(struct lttng_event_target_attr);
+	}
+
 	/* Allocate variable length data */
 	if ((lsm.u.enable.exclusion_count != 0) || ev->target) {
 		varlen_data = zmalloc(lsm.u.enable.bytecode_len
 				+ LTTNG_SYMBOL_NAME_LEN * exclusion_count
-				+ lsm.u.enable.object_path_len);
+				+ lsm.u.enable.target_len);
 		if (!varlen_data) {
 			ret = -LTTNG_ERR_EXCLUSION_NOMEM;
 			goto varlen_alloc_error;
@@ -852,8 +857,6 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 		}
 		/* Add target path last */
 		if (ev->target && ev->target->path_len) {
-			lsm.u.enable.target_len = ev->target->path_len
-				+ sizeof(struct lttng_event_target_attr);
 			memcpy(varlen_data + LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count
 					+ lsm.u.enable.bytecode_len,
 					ev->target,
