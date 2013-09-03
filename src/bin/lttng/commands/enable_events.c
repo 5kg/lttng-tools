@@ -367,7 +367,7 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 			strncpy(fullpath, opt, pos - opt);
 		}
 
-		path_len = min(strnlen(fullpath, PATH_MAX), PATH_MAX);
+		path_len = strnlen(fullpath, PATH_MAX);
 		/* Include the tailing '\0' */
 		target = zmalloc(sizeof(struct lttng_event_target_attr) + path_len + 1);
 		target->path_len = path_len + 1;
