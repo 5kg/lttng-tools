@@ -929,19 +929,18 @@ error:
 }
 
 /*
- * Allocate a target struct and copy the given original one.
+ * Allocate a instrument target and copy the given original one.
  *
- * Return allocated target struct or NULL on error.
+ * Return allocated instrument target or NULL on error.
  */
 static struct lttng_ust_target *alloc_copy_ust_app_target(
 		struct lttng_ust_target *orig_t)
 {
 	struct lttng_ust_target *target = NULL;
 
-	/* Copy filter bytecode */
 	target = zmalloc(sizeof(*target) + orig_t->path_len);
 	if (!target) {
-		PERROR("zmalloc alloc ust app target struct");
+		PERROR("zmalloc alloc ust app instrument target");
 		goto error;
 	}
 
@@ -1111,15 +1110,15 @@ int set_ust_event_target(struct ust_app_event *ua_event,
 			ua_event->obj);
 	if (ret < 0) {
 		if (ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
-			ERR("UST app event %s target failed for app (pid: %d) "
+			ERR("UST app event %s set instrument target failed for app (pid: %d) "
 					"with ret %d", ua_event->attr.name, app->pid, ret);
 		} else {
-			DBG3("UST app target event failed. Application is dead.");
+			DBG3("UST app set instrument target failed. Application is dead.");
 		}
 		goto error;
 	}
 
-	DBG2("UST target set successfully for event %s", ua_event->name);
+	DBG2("UST instrument target set successfully for event %s", ua_event->name);
 
 error:
 	health_code_update();
@@ -1362,7 +1361,7 @@ int create_ust_event(struct ust_app *app, struct ust_app_session *ua_sess,
 
 	health_code_update();
 
-	/* Set target if one is present. */
+	/* Set instrument target if one is present. */
 	if (ua_event->attr.target) {
 		ret = set_ust_event_target(ua_event, app);
 		if (ret < 0) {
@@ -1421,7 +1420,7 @@ static void shadow_copy_event(struct ust_app_event *ua_event,
 	/* Copy event attributes */
 	memcpy(&ua_event->attr, &uevent->attr, sizeof(ua_event->attr));
 
-	/* Copy object path */
+	/* Copy instrument target */
 	if (uevent->attr.target) {
 		ua_event->attr.target =
 			alloc_copy_ust_app_target(uevent->attr.target);

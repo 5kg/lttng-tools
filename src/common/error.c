@@ -112,8 +112,8 @@ static const char *error_string_array[] = {
 	[ ERROR_INDEX(LTTNG_ERR_SNAPSHOT_OUTPUT_EXIST) ] = "Snapshot output already exists",
 	[ ERROR_INDEX(LTTNG_ERR_START_SESSION_ONCE) ] = "Session needs to be started once",
 	[ ERROR_INDEX(LTTNG_ERR_SNAPSHOT_FAIL) ] = "Snapshot record failed",
-	[ ERROR_INDEX(LTTNG_ERR_TARGET_INVAL) ] = "Invalid target struct",
-	[ ERROR_INDEX(LTTNG_ERR_TARGET_NOMEM) ] = "Not enough memory for target struct",
+	[ ERROR_INDEX(LTTNG_ERR_TARGET_INVAL) ] = "Invalid instrument target",
+	[ ERROR_INDEX(LTTNG_ERR_TARGET_NOMEM) ] = "Not enough memory for instrument target",
 
 	/* Last element */
 	[ ERROR_INDEX(LTTNG_ERR_NR) ] = "Unknown error code"
