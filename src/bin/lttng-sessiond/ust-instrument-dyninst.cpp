@@ -45,6 +45,7 @@ BPatch_object* findMatchObject(BPatch_image* image, const char* path)
 int ust_instrument_probe(struct ust_app* app,
 		const char* object_path,
 		const char* name,
+		struct tracepoint *tracepoint,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
 		const char *symbol,
