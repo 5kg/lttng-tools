@@ -5028,10 +5028,11 @@ int ust_app_recv_notify(int sock)
 		char object_path[PATH_MAX];
 		uint64_t addr, offset;
 		struct ust_app *app;
+		struct tracepoint *tracepoint;
 
 		DBG2("UST app ustctl instrument probe received");
 
-		ret = ustctl_recv_instrument_probe(sock, object_path, name,
+		ret = ustctl_recv_instrument_probe(sock, object_path, name, &tracepoint,
 				&instrumentation, &addr, symbol, &offset);
 		if (ret < 0) {
 			if (ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
@@ -5056,8 +5057,8 @@ int ust_app_recv_notify(int sock)
 
 		rcu_read_unlock();
 
-		ret = ust_instrument_probe(app, object_path, name, instrumentation,
-				addr, symbol, offset);
+		ret = ust_instrument_probe(app, object_path, name, tracepoint,
+				instrumentation, addr, symbol, offset);
 
 		DBG3("UST app replying to instrument probe with pid %u, ret: %d",
 				app->pid, ret);
