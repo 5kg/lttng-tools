@@ -377,6 +377,14 @@ static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 		ev->target = target;
 		DBG("probe object %s", ev->target->path);
 		ret = parse_probe_opts(ev, pos+1);
+
+		/* Check if event name is valid */
+		pos = strchr(ev->name, ':');
+		if ((pos == NULL) || (pos == ev->name) || (*(pos+1) == '\0')) {
+			ERR("Invalid event_name %s", ev->name);
+			goto error;
+		}
+
 		goto end;
 	}
 
