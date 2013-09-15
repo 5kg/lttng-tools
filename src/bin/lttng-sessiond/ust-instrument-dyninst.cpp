@@ -19,7 +19,6 @@
 #include <dyninst/BPatch_object.h>
 #include <dyninst/BPatch_function.h>
 #include <dyninst/BPatch_point.h>
-#include <dyninst/Symtab.h>
 
 extern "C" {
 #include "ust-app.h"
@@ -28,9 +27,9 @@ extern "C" {
 
 namespace {
 
-BPatch_object* findMatchObject(BPatch_image* image, const char* path)
+BPatch_object *findMatchObject(BPatch_image *image, const char *path)
 {
-	std::vector<BPatch_object*> objects;
+	std::vector<BPatch_object *> objects;
 	image->getObjects(objects);
 	for (int i = 0; i < objects.size(); i++) {
 		if (objects[i]->pathName() == path) {
@@ -40,11 +39,77 @@ BPatch_object* findMatchObject(BPatch_image* image, const char* path)
 	return NULL;
 }
 
+int findInstrumentPoints(BPatch_object *object,
+		enum lttng_ust_instrumentation instrumentation,
+		uint64_t addr,
+		const char *symbol,
+		uint64_t offset,
+		std::vector<BPatch_point *> &points)
+{
+	std::vector<BPatch_function *> functions;
+	std::vector<BPatch_point *> *func_points;
+
+	switch (instrumentation) {
+	case LTTNG_UST_FUNCTION:
+		object->findFunction(symbol, functions);
+
+		if (functions.size() == 0) {
+			ERR("No functions %s found in app process", symbol);
+			return -1;
+		}
+		if (functions.size() > 1) {
+			ERR("Multiple instances of %s found in app process", symbol);
+			return -1;
+		}
+
+		func_points = functions[0]->findPoint(BPatch_exit);
+		points.insert(points.end(), func_points->begin(), func_points->end());
+		return 0;
+		break;
+	case LTTNG_UST_PROBE:
+		ERR("Not implemented yet");
+		/* Fall through */
+	default:
+		return -1;
+		break;
+	}
 }
 
-int ust_instrument_probe(struct ust_app* app,
-		const char* object_path,
-		const char* name,
+int instrumentProcess(BPatch_process *process,
+		BPatch_image *image,
+		std::vector<BPatch_point *> &points,
+		struct tracepoint *tracepoint)
+{
+	std::vector<BPatch_function *> probes;
+
+	image->findFunction("tracepoint_of", probes);
+	if (probes.size() == 0) {
+		ERR("Probe callback function not found in app process");
+		return -1;
+	}
+	if (probes.size() > 1) {
+		ERR("Multiple instances of probe callback function found in app process");
+		return -1;
+	}
+
+	std::vector<BPatch_snippet *> args;
+	BPatch_constExpr tracepoint_ptr(tracepoint);
+	args.push_back(&tracepoint_ptr);
+	BPatch_funcCallExpr call_probe(*probes[0], args);
+
+	for (int i = 0; i < points.size(); i++) {
+		if (!process->insertSnippet(call_probe, *points[i])) {
+			return -1;
+		}
+	}
+	return 0;
+}
+
+}
+
+int ust_instrument_probe(struct ust_app *app,
+		const char *object_path,
+		const char *name,
 		struct tracepoint *tracepoint,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
@@ -52,92 +117,49 @@ int ust_instrument_probe(struct ust_app* app,
 		uint64_t offset)
 {
 	BPatch bpatch;
-	BPatch_process *proc = bpatch.processAttach(object_path, app->pid);
-	BPatch_image *image = proc->getImage();
+	BPatch_process *process;
+	BPatch_image *image;
+	BPatch_object *object;
+
+	/* Instrumentation points of probe callback function */
+	std::vector<BPatch_point *> points;
+
 	int ret;
 
-	BPatch_object *object = findMatchObject(image, object_path);
-	if (object == NULL) {
+	process = bpatch.processAttach(object_path, app->pid);
+	if (!process) {
+		ERR("Can not attach process %d", app->pid);
+		goto error;
+	}
+	image = process->getImage();
+
+	object = findMatchObject(image, object_path);
+	if (!object) {
 		ERR("Can not find object %s in process %d", object_path, app->pid);
-		proc->detach(true);
-		return -1;
+		goto error;
 	}
 
-	Dyninst::Address address;
-	if (symbol[0] != '\0') {
-		/* symbol+offset provided */
-		Dyninst::SymtabAPI::Symtab *symtab = Dyninst::SymtabAPI::convert(object);
-		std::vector<Dyninst::SymtabAPI::Symbol *> symbols;
-		ret = symtab->findSymbol(symbols, name,
-				Dyninst::SymtabAPI::Symbol::ST_UNKNOWN);
-
-		if (!ret) {
-			ERR("Can not find symbol %s in process %d", symbol, app->pid);
-			proc->detach(true);
-			return -1;
-		}
-		if (symbols.size() > 1) {
-			ERR("Multiple instances of symbol %s founded in process %d", symbol, app->pid);
-			proc->detach(true);
-			return -1;
-		}
-		address = object->fileOffsetToAddr(symbols[0]->getOffset() + offset);
-	} else {
-		/* addr (offset) provided */
-		address = object->fileOffsetToAddr(addr);
+	ret = findInstrumentPoints(object, instrumentation, addr, symbol, offset,
+			points);
+	if (ret) {
+		ERR("Can not find instrumentation points in process %d", app->pid);
+		goto error;
 	}
 
-	std::vector<BPatch_point*> points;
-	std::vector<BPatch_function *> functions;
-	std::vector<BPatch_point *>* func_points;
-	switch (instrumentation) {
-	case LTTNG_UST_PROBE:
-		image->findPoints(address, points);
-	case LTTNG_UST_FUNCTION:
-		image->findFunction(address, functions);
-		if (functions.size() > 1) {
-			ERR("Multiple functions founded in process %d", symbol, app->pid);
-			proc->detach(true);
-			return -1;
-		}
-
-		func_points = functions[0]->findPoint(BPatch_entry);
-		points.insert(points.end(), func_points->begin(), func_points->end());
-		func_points = functions[0]->findPoint(BPatch_exit);
-		points.insert(points.end(), func_points->begin(), func_points->end());
-	default:
-		ERR("Multiple instances of symbol %s founded in process %d", symbol, app->pid);
-		proc->detach(true);
-		return -1;
+	ret = instrumentProcess(process, image, points, tracepoint);
+	if (ret) {
+		ERR("Instrument process %d failed", app->pid);
+		goto error;
 	}
 
-	std::vector<BPatch_function *> probes;
-	/* For now, assume there is a function wrap the tracepoint, e.g.
-	 * void tptest() { tracepoint(tptest); }
-	*/
-	image->findFunction(name, probes);
-	if (probes.size() == 0) {
-		ERR("Can not find probe wrapper %s in process %d", name, app->pid);
-		proc->detach(true);
-		return -1;
-	}
-	if (probes.size() > 1) {
-		ERR("Multiple instances of probe wrapper %s founded in process %d", name, app->pid);
-		proc->detach(true);
-		return -1;
-	}
+	goto end;
 
-	std::vector<BPatch_snippet*> args;
-	BPatch_funcCallExpr call_probe(*probes[0], args);
+error:
+	ret = -1;
 
-	for (int i = 0; i < points.size(); i++) {
-		if (proc->insertSnippet(call_probe, *points[i]) == NULL) {
-			ERR("Insert snippet failed in process %d", name, app->pid);
-			proc->detach(true);
-			return -1;
-		}
+end:
+	if (process) {
+		process->detach(true);
 	}
-
-	proc->detach(true);
-	return 0;
+	return ret;
 }
