@@ -59,6 +59,9 @@ REQUIREMENTS:
 
       * Debian/Ubuntu package: python3-dev
 
+    - Dyninst (optional)
+      Needed for dynamic instrumentation (--enable-dyninst).
+
     - For kernel tracing: modprobe
 
     - bash
@@ -107,6 +110,8 @@ INSTALLATION INSTRUCTIONS:
 
     export PYTHON="python3"
     export PYTHON_CONFIG="/usr/bin/python3-config"
+
+  If you want dynamic instrumentation support, run ./configure --enable-dyninst.
 
 USAGE:
 
