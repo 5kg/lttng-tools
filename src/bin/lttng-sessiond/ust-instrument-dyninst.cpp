@@ -51,7 +51,7 @@ int findInstrumentPoints(BPatch_object *object,
 
 	switch (instrumentation) {
 	case LTTNG_UST_FUNCTION:
-		object->findFunction(symbol, functions);
+		object->findFunction(symbol, functions, false);
 
 		if (functions.size() == 0) {
 			ERR("No functions %s found in app process", symbol);
