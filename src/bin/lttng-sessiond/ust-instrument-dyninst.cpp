@@ -21,6 +21,7 @@
 #include <dyninst/BPatch_point.h>
 
 extern "C" {
+#include <link.h>
 #include "ust-app.h"
 #include "ust-instrument.h"
 }
@@ -113,6 +114,56 @@ void fix_bus_error(BPatch_image *image)
 	var->writeValue(&val);
 }
 
+/*
+ * Check if user set DYNINSTAPI_RT_LIB environment variable.
+ * If not, guess the path of dyninst RT lib form the path of libdyninstAPI.so.
+ * Inspired form systemtap source code.
+ */
+int guess_dyninst_rt_lib_cb(struct dl_phdr_info *info, size_t size, void *data)
+{
+	char **dyninst_rt_lib = (char **) data;
+	if (strstr(info->dlpi_name, "libdyninstAPI.so")) {
+		*dyninst_rt_lib = (char *) malloc(strlen(info->dlpi_name) + 1);
+		strcpy(*dyninst_rt_lib, info->dlpi_name);
+	}
+}
+
+void guess_dyninst_rt_lib(char **dyninst_rt_lib)
+{
+	char *pos;
+	dl_iterate_phdr(guess_dyninst_rt_lib_cb, dyninst_rt_lib);
+
+	if (*dyninst_rt_lib && (pos = strstr(*dyninst_rt_lib, ".so"))) {
+		/* Shift string to make room for "_RT" */
+		strcpy(pos + 3, pos);
+		strncpy(pos, "_RT", 3);
+	}
+}
+
+int check_dyninst_rt_lib()
+{
+	const char dyninst_rt_lib_env[] = "DYNINSTAPI_RT_LIB";
+	char *dyninst_rt_lib;
+	int ret = 0;
+
+	dyninst_rt_lib = getenv(dyninst_rt_lib_env);
+	if (dyninst_rt_lib) {
+		goto end;
+	}
+
+	guess_dyninst_rt_lib(&dyninst_rt_lib);
+	if (dyninst_rt_lib && !access(dyninst_rt_lib, F_OK)) {
+		ret = setenv(dyninst_rt_lib_env, dyninst_rt_lib, 0);
+		if (dyninst_rt_lib) {
+			free(dyninst_rt_lib);
+		}
+		goto end;
+	}
+
+end:
+	return ret;
+}
+
 }
 
 int ust_instrument_probe(struct ust_app *app,
@@ -125,14 +176,17 @@ int ust_instrument_probe(struct ust_app *app,
 		uint64_t offset)
 {
 	BPatch bpatch;
-	BPatch_process *process;
+	BPatch_process *process = NULL;
 	BPatch_image *image;
 	BPatch_object *object;
-
 	/* Instrumentation points of probe callback function */
 	std::vector<BPatch_point *> points;
-
 	int ret;
+
+	if (check_dyninst_rt_lib()) {
+		ERR("Can not find dyninst RT library");
+		goto error;
+	}
 
 	process = bpatch.processAttach(object_path, app->pid);
 	if (!process) {
