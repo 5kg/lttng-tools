@@ -76,6 +76,7 @@ tests/regression/ust/exit-fast/exit-fast
 tests/regression/ust/fork/fork
 tests/regression/ust/fork/fork2
 tests/regression/ust/libc-wrapper/prog
+tests/regression/ust/dynamic-instrument/demo
 tests/utils/testapp/gen-ust-nevents/gen-ust-nevents
 tests/regression/tools/live/live_test
 tests/unit/ini_config/ini_config

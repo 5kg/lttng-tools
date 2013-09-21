@@ -1,0 +1,76 @@
+#!/bin/bash
+#
+# Copyright (C) - 2013 Zifei Tong <soariez@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License, version 2 only, as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 51
+# Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+TEST_DESC="UST tracer - Basic events"
+
+CURDIR=$(dirname $0)/
+TESTDIR=$CURDIR/../../..
+LTTNG_BIN="lttng"
+NUM_TESTS=9
+
+source $TESTDIR/utils/utils.sh
+
+function enable_ust_lttng_event_with_function_probe()
+{
+	sess_name="$1"
+	event_name="$2"
+	probe="$3"
+
+	$TESTDIR/../src/bin/lttng/$LTTNG_BIN enable-event "$event_name" -s $sess_name --function $probe -u >/dev/null 2>&1
+	ok $? "Enable event $event_name for session $sess_name with probe $probe"
+}
+
+function test_event_basic()
+{
+	TRACE_PATH=$(mktemp -d)
+	SESSION_NAME="ust_dynamic_instrument"
+
+	BIN_NAME="demo"
+	FUNCTION_NAME="foo"
+	EVENT_NAME="tp:$FUNCTION_NAME"
+	PROBE="$CURDIR/$BIN_NAME@$FUNCTION_NAME"
+
+	create_lttng_session $SESSION_NAME $TRACE_PATH
+
+	enable_ust_lttng_event_with_function_probe $SESSION_NAME $EVENT_NAME $PROBE
+
+	start_lttng_tracing
+
+	./$CURDIR/$BIN_NAME >/dev/null 2>&1
+	ok $? "Run application to trace"
+
+	stop_lttng_tracing
+
+	TODO="Validate trace output is coherent"
+	ok 0 "Validate trace"
+	unset TODO
+
+	destroy_lttng_session $SESSION_NAME
+
+	rm -rf $TRACE_PATH
+}
+
+# MUST set TESTDIR before calling those functions
+plan_tests $NUM_TESTS
+
+print_test_banner "$TEST_DESC"
+
+start_lttng_sessiond
+
+test_event_basic
+
+stop_lttng_sessiond

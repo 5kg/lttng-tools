@@ -454,6 +454,7 @@ AC_CONFIG_FILES([
 	tests/regression/ust/fork/Makefile
 	tests/regression/ust/libc-wrapper/Makefile
 	tests/regression/ust/java-jul/Makefile
+	tests/regression/ust/dynamic-instrument/Makefile
 	tests/stress/Makefile
 	tests/unit/Makefile
 	tests/unit/ini_config/Makefile
