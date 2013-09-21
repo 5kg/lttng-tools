@@ -310,11 +310,12 @@ AC_ARG_WITH([dyninst],
 
 # TODO: check library and header
 AS_IF([test "x$has_dyninst" != "xno"], [
-	AC_DEFINE([HAVE_DYNINST], [1], [has dyninst library])
-	AC_DEFINE([HAVE_UST_INSTRUMENT_PROBE], [1], [have ust instrument probe])
+	AC_DEFINE([HAVE_DYNINST], [1], [have dyninst library])
+	AC_DEFINE([HAVE_UST_DYNAMIC_INSTRUMENT], [1], [have ust dynamic instrument])
 	build_with_dyninst=yes
 ])
 AM_CONDITIONAL([HAVE_DYNINST], [test "x$build_with_dyninst" = "xyes"])
+AM_CONDITIONAL([HAVE_UST_DYNAMIC_INSTRUMENT], [test "x$build_with_dyninst" = "xyes"])
 
 AC_SYS_LARGEFILE
 AC_PROG_CC
