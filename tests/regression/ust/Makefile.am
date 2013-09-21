@@ -5,4 +5,8 @@ SUBDIRS = nprocesses high-throughput low-throughput before-after multi-session \
 
 EXTRA_DIST = test_event_basic test_event_wildcard
 
+if HAVE_UST_DYNAMIC_INSTRUMENT
+SUBDIRS += dynamic-instrument
+endif
+
 endif
