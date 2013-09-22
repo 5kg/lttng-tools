@@ -63,7 +63,7 @@ int find_instrument_points(BPatch_object *object,
 			return -1;
 		}
 
-		func_points = functions[0]->findPoint(BPatch_exit);
+		func_points = functions[0]->findPoint(BPatch_entry);
 		points.insert(points.end(), func_points->begin(), func_points->end());
 		return 0;
 		break;
