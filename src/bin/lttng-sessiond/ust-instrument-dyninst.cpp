@@ -28,7 +28,7 @@ extern "C" {
 
 namespace {
 
-BPatch_object *findMatchObject(BPatch_image *image, const char *path)
+BPatch_object *find_match_object(BPatch_image *image, const char *path)
 {
 	std::vector<BPatch_object *> objects;
 	image->getObjects(objects);
@@ -40,7 +40,7 @@ BPatch_object *findMatchObject(BPatch_image *image, const char *path)
 	return NULL;
 }
 
-int findInstrumentPoints(BPatch_object *object,
+int find_instrument_points(BPatch_object *object,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
 		const char *symbol,
@@ -76,7 +76,7 @@ int findInstrumentPoints(BPatch_object *object,
 	}
 }
 
-int instrumentProcess(BPatch_process *process,
+int instrument_process(BPatch_process *process,
 		BPatch_image *image,
 		std::vector<BPatch_point *> &points,
 		struct tracepoint *tracepoint)
@@ -195,20 +195,20 @@ int ust_instrument_probe(struct ust_app *app,
 	}
 	image = process->getImage();
 
-	object = findMatchObject(image, object_path);
+	object = find_match_object(image, object_path);
 	if (!object) {
 		ERR("Can not find object %s in process %d", object_path, app->pid);
 		goto error;
 	}
 
-	ret = findInstrumentPoints(object, instrumentation, addr, symbol, offset,
+	ret = find_instrument_points(object, instrumentation, addr, symbol, offset,
 			points);
 	if (ret) {
 		ERR("Can not find instrumentation points in process %d", app->pid);
 		goto error;
 	}
 
-	ret = instrumentProcess(process, image, points, tracepoint);
+	ret = instrument_process(process, image, points, tracepoint);
 	if (ret) {
 		ERR("Instrument process %d failed", app->pid);
 		goto error;
