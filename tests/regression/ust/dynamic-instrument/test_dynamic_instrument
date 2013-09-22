@@ -55,9 +55,9 @@ function test_event_basic()
 
 	stop_lttng_tracing
 
-	TODO="Validate trace output is coherent"
-	ok 0 "Validate trace"
-	unset TODO
+	sleep 1
+
+	trace_matches $EVENT_NAME 10 $TRACE_PATH
 
 	destroy_lttng_session $SESSION_NAME
 
