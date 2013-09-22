@@ -15,7 +15,7 @@ LIBSESSIOND_COMM=$(top_builddir)/src/common/sessiond-comm/libsessiond-comm.la
 LIBHASHTABLE=$(top_builddir)/src/common/hashtable/libhashtable.la
 
 # Define test programs
-noinst_PROGRAMS = test_uri test_session	test_kernel_data test_utils_parse_size_suffix
+noinst_PROGRAMS = test_uri test_session	test_kernel_data test_utils_parse_size_suffix test_utils_expand_path
 
 if HAVE_LIBLTTNG_UST_CTL
 noinst_PROGRAMS += test_ust_data
@@ -92,3 +92,11 @@ UTILS_PARSE_SIZE_SUFFIX=$(top_builddir)/src/common/.libs/utils.o \
 test_utils_parse_size_suffix_SOURCES = test_utils_parse_size_suffix.c
 test_utils_parse_size_suffix_LDADD = $(LIBTAP) $(LIBHASHTABLE) $(LIBCOMMON)
 test_utils_parse_size_suffix_LDADD += $(UTILS_PARSE_SIZE_SUFFIX)
+
+# utils_expand_path unit test
+UTILS_EXPAND_PATH=$(top_builddir)/src/common/.libs/utils.o \
+		$(top_builddir)/src/common/.libs/runas.o
+
+test_utils_expand_path_SOURCES = test_utils_expand_path.c
+test_utils_expand_path_LDADD = $(LIBTAP) $(LIBHASHTABLE) $(LIBCOMMON)
+test_utils_expand_path_LDADD += $(UTILS_EXPAND_PATH)
