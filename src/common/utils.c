@@ -44,16 +44,17 @@ LTTNG_HIDDEN
 char *utils_expand_path(const char *path)
 {
 	const char *end_path = path;
-	char *next, *cut_path = NULL, *expanded_path = NULL;
+	char *cut_path = NULL, *expanded_path = NULL;
 
 	/* Safety net */
 	if (path == NULL) {
 		goto error;
 	}
 
-	/* Find last token delimited by '/' */
-	while ((next = strpbrk(end_path + 1, "/"))) {
-		end_path = next;
+	/* Find the last '/' */
+	end_path = strrchr(path, '/');
+	if (end_path == NULL) {
+		end_path = path;
 	}
 
 	/* Cut last token from original path */
@@ -65,23 +66,38 @@ char *utils_expand_path(const char *path)
 		goto error;
 	}
 
-	expanded_path = realpath((char *)cut_path, expanded_path);
-	if (expanded_path == NULL) {
-		switch (errno) {
-		case ENOENT:
-			ERR("%s: No such file or directory", cut_path);
-			break;
-		default:
-			PERROR("realpath utils expand path");
-			break;
+	/* Cases like: "/usr" */
+	if ((cut_path[0] == '\0') && (path[0] == '/')) {
+		strcpy(expanded_path, path);
+	} else {
+		/* Cases like: ".", "..", "a.out" */
+		if (cut_path[0] == '\0') {
+			expanded_path = realpath("./", expanded_path);
+			strcat(expanded_path, "/");
+		} else {
+			expanded_path = realpath((char *)cut_path, expanded_path);
 		}
-		goto error;
+		if (expanded_path == NULL) {
+			switch (errno) {
+			case ENOENT:
+				ERR("%s: No such file or directory", cut_path);
+				break;
+			default:
+				PERROR("realpath utils expand path");
+				break;
+			}
+			goto error;
+		}
+		/* If the length of expand_path is 1, then it must be '/' */
+		if (expanded_path[1] == '\0') {
+			++end_path;
+		}
+		/* Add end part to expanded path */
+		strncat(expanded_path, end_path, PATH_MAX - strlen(expanded_path) - 1);
 	}
 
-	/* Add end part to expanded path */
-	strncat(expanded_path, end_path, PATH_MAX - strlen(expanded_path) - 1);
-
 	free(cut_path);
+
 	return expanded_path;
 
 error:
