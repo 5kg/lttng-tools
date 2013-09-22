@@ -1147,7 +1147,8 @@ int set_ust_event_target(struct ust_app_event *ua_event,
 		goto error;
 	}
 
-	DBG2("UST instrument target set successfully for event %s", ua_event->name);
+	DBG2("UST instrument target %s set successfully for event %s",
+			ua_event->attr.target->path, ua_event->name);
 
 error:
 	health_code_update();
