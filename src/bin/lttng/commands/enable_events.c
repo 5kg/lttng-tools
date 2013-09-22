@@ -28,6 +28,7 @@
 
 #include "../command.h"
 #include <src/common/sessiond-comm/sessiond-comm.h>
+#include <src/common/utils.h>
 
 static char *opt_event_list;
 static int opt_event_type;
@@ -266,38 +267,33 @@ end:
  */
 static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
 {
-	char *pos;
+	char *pos, *path = NULL;
 	int ret;
 
 	if (opt == NULL) {
-		ret = -1;
-		goto end;
+		goto error;
 	}
 
 	/* Check for pathname */
 	/* TODO: support wildcard matching */
 	if ((pos = strrchr(opt, '@')) != NULL) {
 		struct lttng_event_target_attr *target;
-		char fullpath[PATH_MAX];
 		int path_len;
 
 		/* Process relative path */
-		if (opt[0] != '/') {
-			if (getcwd(fullpath, PATH_MAX) == NULL) {
-				goto error;
-			}
-			strncat(fullpath, "/", 1);
-			strncat(fullpath, opt, pos - opt);
-		} else {
-			strncpy(fullpath, opt, pos - opt);
+		*pos = '\0';
+		path = utils_expand_path(opt);
+		if (!path) {
+			ERR("Invalid instrument object %s", opt);
+			goto error;
 		}
 
-		path_len = strnlen(fullpath, PATH_MAX);
+		path_len = strnlen(path, PATH_MAX);
 		/* Include the tailing '\0' */
 		target = zmalloc(sizeof(struct lttng_event_target_attr) + path_len + 1);
 		target->path_len = path_len + 1;
 
-		strncpy(target->path, fullpath, path_len);
+		strncpy(target->path, path, path_len);
 		target->path[path_len] = '\0';
 		ev->target = target;
 		DBG("probe object %s", ev->target->path);
@@ -318,6 +314,9 @@ error:
 	ret = -1;
 
 end:
+	if (path) {
+		free(path);
+	}
 	return ret;
 }
 
