@@ -20,7 +20,7 @@ TEST_DESC="UST tracer - Basic events"
 CURDIR=$(dirname $0)/
 TESTDIR=$CURDIR/../../..
 LTTNG_BIN="lttng"
-NUM_TESTS=9
+NUM_TESTS=10
 
 source $TESTDIR/utils/utils.sh
 
@@ -57,7 +57,8 @@ function test_event_basic()
 
 	sleep 1
 
-	trace_matches $EVENT_NAME 10 $TRACE_PATH
+	trace_matches "$EVENT_NAME"_entry 10 $TRACE_PATH
+	trace_matches "$EVENT_NAME"_exit 10 $TRACE_PATH
 
 	destroy_lttng_session $SESSION_NAME
 
