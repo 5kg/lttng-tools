@@ -83,7 +83,7 @@ int instrument_process(BPatch_process *process,
 {
 	std::vector<BPatch_function *> probes;
 
-	image->findFunction("tracepoint_of", probes);
+	image->findFunction(__ust_stringify(LTTNG_DYNAMIC_TRACEPOINT), probes);
 	if (probes.size() == 0) {
 		ERR("Probe callback function not found in app process");
 		return -1;
