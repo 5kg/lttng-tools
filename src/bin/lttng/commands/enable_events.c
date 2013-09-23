@@ -326,9 +326,7 @@ error:
 	ret = -1;
 
 end:
-	if (path) {
-		free(path);
-	}
+	free(path);
 	return ret;
 }
 
@@ -941,9 +939,7 @@ error:
 		free(exclusion_list);
 	}
 
-	if (ev.target) {
-		free(ev.target);
-	}
+	free(ev.target);
 
 	return ret;
 }
