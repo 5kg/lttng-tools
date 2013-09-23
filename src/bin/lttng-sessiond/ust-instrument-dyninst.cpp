@@ -40,42 +40,6 @@ BPatch_object *find_match_object(BPatch_image *image, const char *path)
 	return NULL;
 }
 
-int find_instrument_points(BPatch_object *object,
-		enum lttng_ust_instrumentation instrumentation,
-		uint64_t addr,
-		const char *symbol,
-		uint64_t offset,
-		std::vector<BPatch_point *> &points)
-{
-	std::vector<BPatch_function *> functions;
-	std::vector<BPatch_point *> *func_points;
-
-	switch (instrumentation) {
-	case LTTNG_UST_FUNCTION:
-		object->findFunction(symbol, functions, false);
-
-		if (functions.size() == 0) {
-			ERR("No functions %s found in app process", symbol);
-			return -1;
-		}
-		if (functions.size() > 1) {
-			ERR("Multiple instances of %s found in app process", symbol);
-			return -1;
-		}
-
-		func_points = functions[0]->findPoint(BPatch_entry);
-		points.insert(points.end(), func_points->begin(), func_points->end());
-		return 0;
-		break;
-	case LTTNG_UST_PROBE:
-		ERR("Not implemented yet");
-		/* Fall through */
-	default:
-		return -1;
-		break;
-	}
-}
-
 int instrument_process(BPatch_process *process,
 		BPatch_image *image,
 		std::vector<BPatch_point *> &points,
@@ -167,7 +131,7 @@ end:
 int ust_instrument_probe(struct ust_app *app,
 		const char *object_path,
 		const char *name,
-		struct tracepoint *tracepoint,
+		struct lttng_ust_instrument_tracepoint_attr *tracepoint,
 		enum lttng_ust_instrumentation instrumentation,
 		uint64_t addr,
 		const char *symbol,
@@ -178,7 +142,8 @@ int ust_instrument_probe(struct ust_app *app,
 	BPatch_image *image;
 	BPatch_object *object;
 	/* Instrumentation points of probe callback function */
-	std::vector<BPatch_point *> points;
+	std::vector<BPatch_point *> *points;
+	std::vector<BPatch_function *> functions;
 	int ret;
 
 	if (check_dyninst_rt_lib()) {
@@ -199,22 +164,45 @@ int ust_instrument_probe(struct ust_app *app,
 		goto error;
 	}
 
-	ret = find_instrument_points(object, instrumentation, addr, symbol, offset,
-			points);
-	if (ret) {
-		ERR("Can not find instrumentation points in process %d", app->pid);
-		goto error;
-	}
+	switch (instrumentation) {
+	case LTTNG_UST_FUNCTION:
+		object->findFunction(symbol, functions, false);
 
-	ret = instrument_process(process, image, points, tracepoint);
-	if (ret) {
-		ERR("Instrument process %d failed", app->pid);
+		if (functions.size() == 0) {
+			ERR("No functions %s found in app process", symbol);
+			goto error;
+		}
+		if (functions.size() > 1) {
+			ERR("Multiple instances of %s found in app process", symbol);
+			goto error;
+		}
+
+		points = functions[0]->findPoint(BPatch_entry);
+		ret = instrument_process(process, image, *points,
+				tracepoint->u.function.entry);
+		if (ret) {
+			goto error;
+		}
+
+		points = functions[0]->findPoint(BPatch_exit);
+		ret = instrument_process(process, image, *points,
+				tracepoint->u.function.exit);
+		if (ret) {
+			goto error;
+		}
+		break;
+	case LTTNG_UST_PROBE:
+		ERR("Not implemented yet");
+		/* Fall through */
+	default:
 		goto error;
+		break;
 	}
 
 	goto end;
 
 error:
+	ERR("Instrument process %d failed", app->pid);
 	ret = -1;
 
 end:
