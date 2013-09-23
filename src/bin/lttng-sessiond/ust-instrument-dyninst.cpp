@@ -154,9 +154,7 @@ int check_dyninst_rt_lib()
 	guess_dyninst_rt_lib(&dyninst_rt_lib);
 	if (dyninst_rt_lib && !access(dyninst_rt_lib, F_OK)) {
 		ret = setenv(dyninst_rt_lib_env, dyninst_rt_lib, 0);
-		if (dyninst_rt_lib) {
-			free(dyninst_rt_lib);
-		}
+		free(dyninst_rt_lib);
 		goto end;
 	}
 
