@@ -338,4 +338,7 @@ void lttng_ust_abi_exit(void);
 void lttng_ust_events_exit(void);
 void lttng_ust_objd_table_owner_cleanup(void *owner);
 
+/* Function to trigger dynamic instrumented tracepoint */
+#define LTTNG_DYNAMIC_TRACEPOINT tracepoint_of
+
 #endif /* _LTTNG_UST_ABI_H */
