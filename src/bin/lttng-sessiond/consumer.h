@@ -163,6 +163,9 @@ struct consumer_output {
 	 */
 	struct lttng_ht *socks;
 
+	/* Tell if this output is used for snapshot. */
+	unsigned int snapshot:1;
+
 	union {
 		char trace_path[PATH_MAX];
 		struct consumer_net net;
@@ -202,7 +205,8 @@ int consumer_send_channel(struct consumer_socket *sock,
 		struct lttcomm_consumer_msg *msg);
 int consumer_send_relayd_socket(struct consumer_socket *consumer_sock,
 		struct lttcomm_relayd_sock *rsock, struct consumer_output *consumer,
-		enum lttng_stream_type type, uint64_t session_id);
+		enum lttng_stream_type type, uint64_t session_id,
+		char *session_name, char *hostname, int session_live_timer);
 int consumer_send_destroy_relayd(struct consumer_socket *sock,
 		struct consumer_output *consumer);
 int consumer_recv_status_reply(struct consumer_socket *sock);
@@ -220,6 +224,7 @@ void consumer_init_ask_channel_comm_msg(struct lttcomm_consumer_msg *msg,
 		int overwrite,
 		unsigned int switch_timer_interval,
 		unsigned int read_timer_interval,
+		unsigned int live_timer_interval,
 		int output,
 		int type,
 		uint64_t session_id,
@@ -255,7 +260,8 @@ void consumer_init_channel_comm_msg(struct lttcomm_consumer_msg *msg,
 		int type,
 		uint64_t tracefile_size,
 		uint64_t tracefile_count,
-		unsigned int monitor);
+		unsigned int monitor,
+		unsigned int live_timer_interval);
 int consumer_is_data_pending(uint64_t session_id,
 		struct consumer_output *consumer);
 int consumer_close_metadata(struct consumer_socket *socket,

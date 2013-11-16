@@ -23,7 +23,7 @@
 #include "fd-limit.h"
 #include "lttng-sessiond.h"
 #include "ust-thread.h"
-#include "health.h"
+#include "health-sessiond.h"
 
 /*
  * This thread manage application notify communication.
@@ -31,6 +31,7 @@
 void *ust_thread_manage_notify(void *data)
 {
 	int i, ret, pollfd, err = -1;
+	ssize_t size_ret;
 	uint32_t revents, nb_fd;
 	struct lttng_poll_event events;
 
@@ -39,7 +40,8 @@ void *ust_thread_manage_notify(void *data)
 	rcu_register_thread();
 	rcu_thread_online();
 
-	health_register(HEALTH_TYPE_APP_MANAGE_NOTIFY);
+	health_register(health_sessiond,
+		HEALTH_SESSIOND_TYPE_APP_MANAGE_NOTIFY);
 
 	health_code_update();
 
@@ -104,11 +106,10 @@ restart:
 					goto error;
 				}
 
-				do {
-					/* Get socket from dispatch thread. */
-					ret = read(apps_cmd_notify_pipe[0], &sock, sizeof(sock));
-				} while (ret < 0 && errno == EINTR);
-				if (ret < 0 || ret < sizeof(sock)) {
+				/* Get socket from dispatch thread. */
+				size_ret = lttng_read(apps_cmd_notify_pipe[0],
+						&sock, sizeof(sock));
+				if (size_ret < sizeof(sock)) {
 					PERROR("read apps notify pipe");
 					goto error;
 				}
@@ -176,7 +177,7 @@ error_poll_create:
 		health_error();
 		ERR("Health error occurred in %s", __func__);
 	}
-	health_unregister();
+	health_unregister(health_sessiond);
 	rcu_thread_offline();
 	rcu_unregister_thread();
 	return NULL;

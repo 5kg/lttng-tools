@@ -28,7 +28,7 @@
 #include <common/defaults.h>
 
 #include "consumer.h"
-#include "health.h"
+#include "health-sessiond.h"
 #include "ust-consumer.h"
 #include "buffer-registry.h"
 #include "session.h"
@@ -147,6 +147,7 @@ static int ask_channel_creation(struct ust_app_session *ua_sess,
 			ua_chan->attr.overwrite,
 			ua_chan->attr.switch_timer_interval,
 			ua_chan->attr.read_timer_interval,
+			ua_sess->live_timer_interval,
 			(int) ua_chan->attr.output,
 			(int) ua_chan->attr.type,
 			ua_sess->tracing_id,

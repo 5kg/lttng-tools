@@ -21,6 +21,8 @@
 #include <stdint.h>
 
 #include <common/compat/uuid.h>
+
+#include "jul.h"
 #include "trace-ust.h"
 #include "ust-registry.h"
 
@@ -48,6 +50,7 @@ struct ust_app_ht_key {
 	const char *name;
 	const struct lttng_ust_filter_bytecode *filter;
 	enum lttng_ust_loglevel_type loglevel;
+	const struct lttng_ust_event_exclusion *exclusion;
 };
 
 /*
@@ -113,6 +116,7 @@ struct ust_app_event {
 	char name[LTTNG_UST_SYM_NAME_LEN];
 	struct lttng_ht_node_str node;
 	struct lttng_ust_filter_bytecode *filter;
+	struct lttng_ust_event_exclusion *exclusion;
 };
 
 struct ust_app_stream {
@@ -207,6 +211,7 @@ struct ust_app_session {
 	struct rcu_head rcu_head;
 	/* If the channel's streams have to be outputed or not. */
 	unsigned int output_traces;
+	unsigned int live_timer_interval;	/* usec */
 };
 
 /*
@@ -258,6 +263,13 @@ struct ust_app {
 	 * Hash table containing ust_app_channel indexed by channel objd.
 	 */
 	struct lttng_ht *ust_objd;
+	/*
+	 * If this application is of the JUL domain and this is non negative then a
+	 * lookup MUST be done to acquire a read side reference to the
+	 * corresponding JUL app object. If the lookup fails, this should be set to
+	 * a negative value indicating that the JUL application is gone.
+	 */
+	int jul_app_sock;
 };
 
 #ifdef HAVE_LIBLTTNG_UST_CTL
@@ -319,6 +331,7 @@ void ust_app_destroy(struct ust_app *app);
 int ust_app_snapshot_record(struct ltt_ust_session *usess,
 		struct snapshot_output *output, int wait, unsigned int nb_streams);
 unsigned int ust_app_get_nb_stream(struct ltt_ust_session *usess);
+struct ust_app *ust_app_find_by_sock(int sock);
 
 static inline
 int ust_app_supported(void)
@@ -538,6 +551,16 @@ static inline
 int ust_app_supported(void)
 {
 	return 0;
+}
+static inline
+struct ust_app *ust_app_find_by_sock(int sock)
+{
+	return NULL;
+}
+static inline
+struct ust_app *ust_app_find_by_pid(pid_t pid)
+{
+	return NULL;
 }
 
 #endif /* HAVE_LIBLTTNG_UST_CTL */
