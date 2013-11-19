@@ -70,14 +70,6 @@ int instrument_process(BPatch_process *process,
 	return 0;
 }
 
-/* A dirty hack to fix a bus error happens when mutatee exits */
-void fix_bus_error(BPatch_image *image)
-{
-	int val = 1;
-	BPatch_variableExpr *var = image->findVariable("DYNINSTstaticMode");
-	var->writeValue(&val);
-}
-
 /*
  * Check if user set DYNINSTAPI_RT_LIB environment variable.
  * If not, guess the path of dyninst RT lib form the path of libdyninstAPI.so.
@@ -207,7 +199,6 @@ error:
 
 end:
 	if (process) {
-		fix_bus_error(image);
 		process->detach(true);
 	}
 	return ret;
