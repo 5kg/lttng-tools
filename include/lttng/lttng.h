@@ -634,6 +634,22 @@ extern int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 		int exclusion_count, char **exclusion_names);
 
 /*
+ * Create or enable an event with a filter and/or instrument target.
+ *
+ * If the event you are trying to enable does not exist, it will be created,
+ * else it is enabled.
+ * If ev is NULL, all events are enabled with the filter and exclusion options.
+ * If channel_name is NULL, the default channel is used (channel0) and created
+ * if not found.
+ * If filter_expression is NULL, an event without associated filter is
+ * created.
+ * If target path is NULL, the event will be created without target.
+ */
+extern int lttng_enable_event_with_target(struct lttng_handle *handle,
+		struct lttng_event *event, const char *channel_name,
+		const char *filter_expression, const char *target_path);
+
+/*
  * Create or enable a channel.
  *
  * The chan and handle params can not be NULL.

@@ -668,44 +668,19 @@ int lttng_add_context(struct lttng_handle *handle,
 }
 
 /*
- *  Enable event(s) for a channel.
- *  If no event name is specified, all events are enabled.
- *  If no channel name is specified, the default 'channel0' is used.
- *  Returns size of returned session payload data or a negative error code.
- */
-int lttng_enable_event(struct lttng_handle *handle,
-		struct lttng_event *ev, const char *channel_name)
-{
-	return lttng_enable_event_with_exclusions(handle, ev, channel_name,
-			NULL, 0, NULL);
-}
-
-/*
- * Create or enable an event with a filter expression.
- *
- * Return negative error value on error.
- * Return size of returned session payload data if OK.
- */
-int lttng_enable_event_with_filter(struct lttng_handle *handle,
-		struct lttng_event *event, const char *channel_name,
-		const char *filter_expression)
-{
-	return lttng_enable_event_with_exclusions(handle, event, channel_name,
-			filter_expression, 0, NULL);
-}
-
-/*
- * Enable event(s) for a channel, possibly with exclusions and a filter.
+ * Enable event(s) for a channel, possibly with exclusions, filter and target.
  * If no event name is specified, all events are enabled.
  * If no channel name is specified, the default name is used.
  * If filter expression is not NULL, the filter is set for the event.
  * If exclusion count is not zero, the exclusions are set for the event.
+ * If target path is not NULL, the target are set for the event.
  * Returns size of returned session payload data or a negative error code.
  */
-int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
+static int enable_event(struct lttng_handle *handle,
 		struct lttng_event *ev, const char *channel_name,
 		const char *filter_expression,
-		int exclusion_count, char **exclusion_list)
+		int exclusion_count, char **exclusion_list,
+		const char *target_path)
 {
 	struct lttcomm_session_msg lsm;
 	char *varlen_data;
@@ -749,9 +724,10 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 			sizeof(lsm.session.name));
 	lsm.u.enable.exclusion_count = exclusion_count;
 	lsm.u.enable.bytecode_len = 0;
+	lsm.u.enable.target_len = 0;
 
 	if (exclusion_count == 0 && filter_expression == NULL
-			&& ev->target == NULL) {
+			&& target_path == NULL) {
 		ret = lttng_ctl_ask_sessiond(&lsm, NULL);
 		return ret;
 	}
@@ -836,18 +812,17 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 				+ bytecode_get_len(&ctx->bytecode->b);
 	}
 
-	if (ev->target != NULL) {
-		lsm.u.enable.target_len = ev->target->path_len
-			+ sizeof(struct lttng_event_target_attr);
+	if (target_path != NULL) {
+		lsm.u.enable.target_len = strnlen(target_path, PATH_MAX);
 	}
 
 	/* Allocate variable length data */
-	if ((lsm.u.enable.exclusion_count != 0) || ev->target) {
+	if ((lsm.u.enable.exclusion_count != 0) || target_path != NULL) {
 		varlen_data = zmalloc(lsm.u.enable.bytecode_len
 				+ LTTNG_SYMBOL_NAME_LEN * exclusion_count
 				+ lsm.u.enable.target_len);
 		if (!varlen_data) {
-			ret = -LTTNG_ERR_EXCLUSION_NOMEM;
+			ret = -LTTNG_ERR_NOMEM;
 			goto varlen_alloc_error;
 		}
 		/* Put exclusion names first in the data */
@@ -862,23 +837,23 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
 					&ctx->bytecode->b,
 					lsm.u.enable.bytecode_len);
 		}
-		/* Add target path last */
-		if (ev->target && ev->target->path_len) {
+		/* Add instrument target last */
+		if (lsm.u.enable.target_len != 0) {
 			memcpy(varlen_data + LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count
 					+ lsm.u.enable.bytecode_len,
-					ev->target,
+					target_path,
 					lsm.u.enable.target_len);
 		}
 	} else {
-		/* no exclusions - use the already allocated filter bytecode */
+		/* no exclusions/target - use the already allocated filter bytecode */
 		varlen_data = (char *)(&ctx->bytecode->b);
 	}
 
 	ret = lttng_ctl_ask_sessiond_varlen(&lsm, varlen_data,
-			(LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count) +
-			lsm.u.enable.bytecode_len + lsm.u.enable.target_len, NULL);
+			(LTTNG_SYMBOL_NAME_LEN * lsm.u.enable.exclusion_count)
+				+ lsm.u.enable.bytecode_len + lsm.u.enable.target_len, NULL);
 
-	if (lsm.u.enable.exclusion_count != 0) {
+	if (lsm.u.enable.exclusion_count != 0 || target_path != NULL) {
 		free(varlen_data);
 	}
 
@@ -902,6 +877,65 @@ filter_alloc_error:
 		perror("fclose");
 	}
 	return ret;
+}
+
+/*
+ *  Enable event(s) for a channel.
+ *  If no event name is specified, all events are enabled.
+ *  If no channel name is specified, the default 'channel0' is used.
+ *  Returns size of returned session payload data or a negative error code.
+ */
+int lttng_enable_event(struct lttng_handle *handle,
+		struct lttng_event *ev, const char *channel_name)
+{
+	return enable_event(handle, ev, channel_name, NULL, 0, NULL, NULL);
+}
+
+/*
+ * Create or enable an event with a filter expression.
+ *
+ * Return negative error value on error.
+ * Return size of returned session payload data if OK.
+ */
+int lttng_enable_event_with_filter(struct lttng_handle *handle,
+		struct lttng_event *event, const char *channel_name,
+		const char *filter_expression)
+{
+	return enable_event(handle, event, channel_name, filter_expression,
+		0, NULL, NULL);
+}
+
+/*
+ * Enable event(s) for a channel, possibly with exclusions and a filter.
+ * If no event name is specified, all events are enabled.
+ * If no channel name is specified, the default name is used.
+ * If filter expression is not NULL, the filter is set for the event.
+ * If exclusion count is not zero, the exclusions are set for the event.
+ * Returns size of returned session payload data or a negative error code.
+ */
+int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
+		struct lttng_event *ev, const char *channel_name,
+		const char *filter_expression,
+		int exclusion_count, char **exclusion_list)
+{
+	return enable_event(handle, ev, channel_name, filter_expression,
+		exclusion_count, exclusion_list, NULL);
+}
+
+/*
+ * Enable event(s) for a channel, possibly with target and a filter.
+ * If no event name is specified, all events are enabled.
+ * If no channel name is specified, the default name is used.
+ * If filter expression is not NULL, the filter is set for the event.
+ * If tatget path is not NULL, the target is set for the event.
+ * Returns size of returned session payload data or a negative error code.
+ */
+int lttng_enable_event_with_target(struct lttng_handle *handle,
+		struct lttng_event *ev, const char *channel_name,
+		const char *filter_expression, const char *target_path)
+{
+	return enable_event(handle, ev, channel_name, filter_expression,
+		0, NULL, target_path);
 }
 
 /*
