@@ -293,7 +293,6 @@ static int parse_probe_opts(struct lttng_event *ev, char *opt)
 	ret = -1;
 
 end:
-	free(path);
 	return ret;
 }
 
@@ -341,52 +340,36 @@ static int loglevel_jul_str_to_value(const char *inputstr)
 /*
  * Parse user-space probe options.
  */
-static int parse_ust_probe_opts(struct lttng_event *ev, char *opt)
+static int parse_ust_probe_opts(struct lttng_event *ev, char *target, char *opt)
 {
-	char *pos, *path = NULL;
+	char *pos;
 	int ret;
 
 	if (opt == NULL) {
 		goto error;
 	}
 
-	/* Check for pathname */
-	/* TODO: support wildcard matching */
-	if ((pos = strrchr(opt, '@')) != NULL) {
-		struct lttng_event_target_attr *target;
-		int path_len;
+	if (ev->name[strlen(ev->name) - 1] == '*') {
+		ERR("Event %s: Userspace probes cannot be used with wildcarded events", ev->name);
+		goto error;
+	}
 
+	/* Check for pathname */
+	pos = strrchr(opt, '@');
+	if (pos != NULL) {
 		/* Process relative path */
 		*pos = '\0';
-		path = utils_expand_path(opt);
-		if (!path) {
-			ERR("Invalid instrument object %s", opt);
+		target = utils_expand_path(opt);
+		if (!target) {
+			ERR("Invalid instrument target: %s", opt);
 			goto error;
 		}
 
-		path_len = strnlen(path, PATH_MAX);
-		/* Include the tailing '\0' */
-		target = zmalloc(sizeof(struct lttng_event_target_attr) + path_len + 1);
-		target->path_len = path_len + 1;
-
-		strncpy(target->path, path, path_len);
-		target->path[path_len] = '\0';
-		ev->target = target;
-		DBG("probe object %s", ev->target->path);
 		ret = parse_probe_opts(ev, pos+1);
-
-		/* Check if event name is valid */
-		pos = strchr(ev->name, ':');
-		if ((pos == NULL) || (pos == ev->name) || (*(pos+1) == '\0')) {
-			ERR("Invalid event_name %s", ev->name);
-			goto error;
-		}
-
 		goto end;
 	}
 
 error:
-	/* No match */
 	ret = -1;
 
 end:
@@ -590,6 +573,7 @@ static int enable_events(char *session_name)
 	struct lttng_domain dom;
 	int exclusion_count = 0;
 	char **exclusion_list = NULL;
+	char *target_path = NULL;
 
 	memset(&ev, 0, sizeof(ev));
 	memset(&dom, 0, sizeof(dom));
@@ -851,7 +835,9 @@ static int enable_events(char *session_name)
 				ev.name[LTTNG_SYMBOL_NAME_LEN - 1] = '\0';
 				break;
 			case LTTNG_EVENT_PROBE:
-				ret = parse_ust_probe_opts(&ev, opt_probe);
+				/* Free previously allocated path */
+				free(target_path);
+				ret = parse_ust_probe_opts(&ev, target_path, opt_probe);
 				if (ret < 0) {
 					ERR("Unable to parse probe options");
 					ret = 0;
@@ -859,7 +845,9 @@ static int enable_events(char *session_name)
 				}
 				break;
 			case LTTNG_EVENT_FUNCTION:
-				ret = parse_ust_probe_opts(&ev, opt_function);
+				/* Free previously allocated path */
+				free(target_path);
+				ret = parse_ust_probe_opts(&ev, target_path, opt_function);
 				if (ret < 0) {
 					ERR("Unable to parse function probe options");
 					ret = 0;
@@ -938,10 +926,16 @@ static int enable_events(char *session_name)
 		if (!opt_filter) {
 			char *exclusion_string;
 
-			ret = lttng_enable_event_with_exclusions(handle,
-					&ev, channel_name,
-					NULL, exclusion_count, exclusion_list);
+			if (opt_exclude) {
+				ret = lttng_enable_event_with_exclusions(handle,
+						&ev, channel_name, NULL,
+						exclusion_count, exclusion_list);
+			} else {
+				ret = lttng_enable_event_with_target(handle,
+						&ev, channel_name, NULL, target_path);
+			}
 			exclusion_string = print_exclusions(exclusion_count, exclusion_list);
+
 			if (ret < 0) {
 				/* Turn ret to positive value to handle the positive error code */
 				switch (-ret) {
@@ -974,8 +968,14 @@ static int enable_events(char *session_name)
 		if (opt_filter) {
 			char *exclusion_string;
 
-			ret = lttng_enable_event_with_exclusions(handle, &ev, channel_name,
-					opt_filter, exclusion_count, exclusion_list);
+			if (opt_exclude) {
+				ret = lttng_enable_event_with_exclusions(handle, &ev,
+						channel_name, opt_filter,
+						exclusion_count, exclusion_list);
+			} else {
+				ret = lttng_enable_event_with_target(handle, &ev,
+						channel_name, opt_filter, target_path);
+			}
 			exclusion_string = print_exclusions(exclusion_count, exclusion_list);
 
 			if (ret < 0) {
@@ -1024,8 +1024,7 @@ error:
 		}
 		free(exclusion_list);
 	}
-
-	free(ev.target);
+	free(target_path);
 
 	return ret;
 }
