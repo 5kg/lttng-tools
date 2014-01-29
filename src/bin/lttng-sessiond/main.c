@@ -3037,8 +3037,7 @@ skip_domain:
 	{
 		struct lttng_event_exclusion *exclusion = NULL;
 		struct lttng_filter_bytecode *bytecode = NULL;
-		/* TODO: Handle dynamic instrumentation with filter */
-		struct lttng_event_target_attr *target;
+		struct lttng_event_target *target = NULL;
 
 		/* Handle exclusion events and receive it from the client. */
 		if (cmd_ctx->lsm->u.enable.exclusion_count > 0) {
@@ -3101,44 +3100,43 @@ skip_domain:
 			}
 		}
 
-		if (cmd_ctx->lsm->u.enable.event.target) {
-			if (cmd_ctx->lsm->u.enable.target_len
-					< sizeof(struct lttng_event_target_attr)) {
+		/* Handle instrument target and get path from client. */
+		if (cmd_ctx->lsm->u.enable.target_len > 0) {
+			size_t target_len = cmd_ctx->lsm->u.enable.target_len;
+
+			if (target_len > PATH_MAX) {
 				ret = LTTNG_ERR_TARGET_INVAL;
+				free(exclusion);
+				free(bytecode);
 				goto error;
 			}
 
-			target = zmalloc(cmd_ctx->lsm->u.enable.target_len);
+			target = zmalloc(sizeof(*target) + target_len);
 			if (!target) {
+				free(exclusion);
+				free(bytecode);
 				ret = LTTNG_ERR_TARGET_NOMEM;
 				goto error;
 			}
 
 			/* Receive var. len. data */
-			DBG("Receiving var len data target from client ...");
-			ret = lttcomm_recv_unix_sock(sock, target,
-					cmd_ctx->lsm->u.enable.target_len);
+			DBG("Receiving var len data target path from client ...");
+			target->path_len = target_len;
+			ret = lttcomm_recv_unix_sock(sock, target->path, target_len);
 			if (ret <= 0) {
 				DBG("Nothing recv() from client var len data... continuing");
 				*sock_error = 1;
+				free(exclusion);
+				free(bytecode);
 				free(target);
 				ret = LTTNG_ERR_TARGET_INVAL;
 				goto error;
 			}
-
-			if ((sizeof(struct lttng_event_target_attr) + target->path_len)
-						!= cmd_ctx->lsm->u.enable.target_len) {
-				free(target);
-				ret = LTTNG_ERR_TARGET_INVAL;
-				goto error;
-			}
-
-			cmd_ctx->lsm->u.enable.event.target = target;
 		}
 
 		ret = cmd_enable_event(cmd_ctx->session, &cmd_ctx->lsm->domain,
 				cmd_ctx->lsm->u.enable.channel_name,
-				&cmd_ctx->lsm->u.enable.event, bytecode, exclusion,
+				&cmd_ctx->lsm->u.enable.event, bytecode, exclusion, target,
 				kernel_poll_pipe[1]);
 		break;
 	}
