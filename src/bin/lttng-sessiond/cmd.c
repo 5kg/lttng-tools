@@ -1431,7 +1431,8 @@ int cmd_enable_event(struct ltt_session *session, struct lttng_domain *domain,
 		}
 
 		/* At this point, the session and channel exist on the tracer */
-		ret = event_ust_enable_tracepoint(usess, uchan, event, filter, exclusion);
+		ret = event_ust_enable_tracepoint(usess, uchan, event,
+				filter, exclusion, target);
 		if (ret != LTTNG_OK) {
 			goto error;
 		}
