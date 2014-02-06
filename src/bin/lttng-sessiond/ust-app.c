@@ -287,10 +287,10 @@ void delete_ust_app_event(int sock, struct ust_app_event *ua_event)
 
 	assert(ua_event);
 
-	free(ua_event->attr.target);
 	free(ua_event->filter);
-	if (ua_event->exclusion != NULL)
-		free(ua_event->exclusion);
+	free(ua_event->exclusion);
+	free(ua_event->target);
+
 	if (ua_event->obj != NULL) {
 		ret = ustctl_release_object(sock, ua_event->obj);
 		if (ret < 0 && ret != -EPIPE && ret != -LTTNG_UST_ERR_EXITING) {
@@ -970,28 +970,6 @@ error:
 }
 
 /*
- * Allocate a instrument target and copy the given original one.
- *
- * Return allocated instrument target or NULL on error.
- */
-static struct lttng_ust_target *alloc_copy_ust_app_target(
-		struct lttng_ust_target *orig_t)
-{
-	struct lttng_ust_target *target = NULL;
-
-	target = zmalloc(sizeof(*target) + orig_t->path_len);
-	if (!target) {
-		PERROR("zmalloc alloc ust app instrument target");
-		goto error;
-	}
-
-	memcpy(target, orig_t, sizeof(*target) + orig_t->path_len);
-
-error:
-	return target;
-}
-
-/*
  * Allocate a filter and copy the given original filter.
  *
  * Return allocated filter or NULL on error.
@@ -1548,6 +1526,7 @@ static void shadow_copy_event(struct ust_app_event *ua_event,
 		struct ltt_ust_event *uevent)
 {
 	size_t exclusion_alloc_size;
+	size_t target_alloc_size;
 
 	strncpy(ua_event->name, uevent->attr.name, sizeof(ua_event->name));
 	ua_event->name[sizeof(ua_event->name) - 1] = '\0';
@@ -1556,13 +1535,6 @@ static void shadow_copy_event(struct ust_app_event *ua_event,
 
 	/* Copy event attributes */
 	memcpy(&ua_event->attr, &uevent->attr, sizeof(ua_event->attr));
-
-	/* Copy instrument target */
-	if (uevent->attr.target) {
-		ua_event->attr.target =
-			alloc_copy_ust_app_target(uevent->attr.target);
-		/* Target might be NULL here in case of ENONEM. */
-	}
 
 	/* Copy filter bytecode */
 	if (uevent->filter) {
@@ -1580,6 +1552,18 @@ static void shadow_copy_event(struct ust_app_event *ua_event,
 		} else {
 			memcpy(ua_event->exclusion, uevent->exclusion,
 					exclusion_alloc_size);
+		}
+	}
+
+	/* Copy instrument target data */
+	if (uevent->target) {
+		target_alloc_size = sizeof(struct lttng_ust_event_target) +
+				uevent->target->path_len;
+		ua_event->target = zmalloc(target_alloc_size);
+		if (ua_event->target == NULL) {
+			PERROR("malloc");
+		} else {
+			memcpy(ua_event->target, uevent->target, target_alloc_size);
 		}
 	}
 }
