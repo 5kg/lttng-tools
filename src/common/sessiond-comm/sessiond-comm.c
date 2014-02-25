@@ -67,6 +67,7 @@ static const char *lttcomm_readable_code[] = {
 	[ LTTCOMM_ERR_INDEX(LTTCOMM_CONSUMERD_ERROR_METADATA) ] = "Error with metadata",
 	[ LTTCOMM_ERR_INDEX(LTTCOMM_CONSUMERD_FATAL) ] = "Fatal error",
 	[ LTTCOMM_ERR_INDEX(LTTCOMM_CONSUMERD_RELAYD_FAIL) ] = "Error on remote relayd",
+	[ LTTCOMM_ERR_INDEX(LTTCOMM_CONSUMERD_CHANNEL_FAIL) ] = "Channel creation failed",
 
 	/* Last element */
 	[ LTTCOMM_ERR_INDEX(LTTCOMM_NR) ] = "Unknown error code"
